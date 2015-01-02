@@ -6,6 +6,7 @@
 
 import argparse
 import array
+import numpy
 from numpy import fft
 import wave
 
@@ -24,6 +25,14 @@ def read_wav(path):
     data.fromstring(data_string)
 
     return list(data)
+
+def log_fft(wav_data):
+    '''
+    Returns the FFT data, scaled as if destined for a log-log graph
+    '''
+    norm_data = [float(d)/(2**16) for d in wav_data]
+    fft_data_complex = fft.rfft(norm_data)
+    fft_data = numpy.absolute(fft_data_complex)
 
 def main(wav_path):
     data = read_wav(wav_path)
