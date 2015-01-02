@@ -10,12 +10,15 @@ import numpy
 from numpy import fft
 import wave
 
+SAMPLE_RATE = 44100
+
 def read_wav(path):
     wav_file = wave.open(path)
 
     assert wav_file.getnchannels() == 1
-    assert wav_file.getframerate() == 44100, 'Expect 44.1k audio'
-    assert wav_file.getnframes() <= 44100, 'Expect less than a second of audio'
+    assert wav_file.getframerate() == SAMPLE_RATE, 'Expect 44.1k audio'
+    assert wav_file.getnframes() <= SAMPLE_RATE, ('Expect less than a second of'
+                                                  ' audio')
     assert wav_file.getsampwidth() == 2, 'Expected signed 16 bit audio'
 
     data_string = wav_file.readframes(wav_file.getnframes())
