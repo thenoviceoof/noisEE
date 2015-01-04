@@ -40,6 +40,14 @@ def fft_db(wav_data):
 
     return fft_data_lg
 
+def get_slope(lg_freq, spectrum):
+    '''
+    Find the slope/error of the frequency spectrum
+    '''
+    fit, error, _, _, rcond = numpy.polyfit(lg_freq, spectrum, 1, full=True)
+    m, b = fit
+    return m, error[0]
+
 def main(wav_path, sample_size=1024):
     wav_data = read_wav(wav_path)
     assert len(wav_data) >= sample_size, 'Audio sample not large enough'
@@ -51,6 +59,14 @@ def main(wav_path, sample_size=1024):
     # Apply the fft to each bucket, and average the frequency spectrums
     spectra = [fft_db(wd) for wd in wav_data]
     spectra_avg = sum(spectra) / len(spectra)
+
+    # Join the spectra data (x) with the log frequency (y),
+    # for a true lg-lg plot, removing the constant (to avoid -inf)
+    lg_freq = numpy.log10(fft.rfftfreq(sample_size)[1:])
+    spectra_avg = spectra_avg[1:]
+
+    # Find slope of falloff for data
+    slope, error = get_slope(lg_freq, spectra_avg)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
