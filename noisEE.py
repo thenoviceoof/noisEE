@@ -40,13 +40,22 @@ def fft_db(wav_data):
 
     return fft_data_lg
 
-def main(wav_path):
-    data = read_wav(wav_path)
+def main(wav_path, sample_size=1024):
+    wav_data = read_wav(wav_path)
+    assert len(wav_data) >= sample_size, 'Audio sample not large enough'
+
+    # Split the data into a bunch of sample_size arrays
+    wav_data = [wav_data[i*sample_size:(i+1)*sample_size]
+                for i in range(len(wav_data)/sample_size)]
+
+    # Apply the fft
+    lg_data = fft_db(wav_data[0])
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('wavpath', help='')
+    parser.add_argument('--fft-size', type=int, default=1024, help='')
 
     args = parser.parse_args()
 
-    main(args.wavpath)
+    main(args.wavpath, sample_size=args.fft_size)
