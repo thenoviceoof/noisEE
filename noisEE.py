@@ -48,8 +48,9 @@ def main(wav_path, sample_size=1024):
     wav_data = [wav_data[i*sample_size:(i+1)*sample_size]
                 for i in range(len(wav_data)/sample_size)]
 
-    # Apply the fft
-    lg_data = fft_db(wav_data[0])
+    # Apply the fft to each bucket, and average the frequency spectrums
+    spectra = [fft_db(wd) for wd in wav_data]
+    spectra_avg = sum(spectra) / len(spectra)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
