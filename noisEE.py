@@ -29,13 +29,16 @@ def read_wav(path):
 
     return list(data)
 
-def log_fft(wav_data):
+def fft_db(wav_data):
     '''
     Returns the FFT data, scaled as if destined for a log-log graph
     '''
-    norm_data = [float(d)/(2**16) for d in wav_data]
+    norm_data = [float(d) / (2**15) for d in wav_data]
     fft_data_complex = fft.rfft(norm_data)
-    fft_data = numpy.absolute(fft_data_complex)
+    fft_data = numpy.absolute(fft_data_complex) / len(fft_data_complex)
+    fft_data_lg = 20 * numpy.log10(fft_data)
+
+    return fft_data_lg
 
 def main(wav_path):
     data = read_wav(wav_path)
