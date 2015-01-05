@@ -46,7 +46,7 @@ def get_slope(lg_freq, spectrum):
     '''
     fit, error, _, _, rcond = numpy.polyfit(lg_freq, spectrum, 1, full=True)
     m, b = fit
-    return m, error[0]
+    return m, error[0]**0.5
 
 def main(wav_path, sample_size=1024):
     wav_data = read_wav(wav_path)
