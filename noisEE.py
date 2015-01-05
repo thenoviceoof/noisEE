@@ -8,6 +8,7 @@ import argparse
 import array
 import numpy
 from numpy import fft
+import sys
 import wave
 
 try:
@@ -17,14 +18,22 @@ except ImportError:
 
 SAMPLE_RATE = 44100
 
+def user_assert(condition, message):
+    '''
+    A more user-friendly (no stack traces) way to check data for coherency.
+    '''
+    if not condition:
+        print 'ERROR: %s' % message
+        sys.exit(1)
+
 def read_wav(path):
     wav_file = wave.open(path)
 
-    assert wav_file.getnchannels() == 1
-    assert wav_file.getframerate() == SAMPLE_RATE, 'Expect 44.1k audio'
-    assert wav_file.getnframes() <= SAMPLE_RATE, ('Expect less than a second of'
-                                                  ' audio')
-    assert wav_file.getsampwidth() == 2, 'Expected signed 16 bit audio'
+    user_assert(wav_file.getnchannels() == 1, 'Expect monochannel audio')
+    user_assert(wav_file.getframerate() == SAMPLE_RATE, 'Expect 44.1k audio')
+    user_assert(wav_file.getnframes() <= SAMPLE_RATE,
+                'Expect less than a second of audio')
+    user_assert(wav_file.getsampwidth() == 2, 'Expected signed 16 bit audio')
 
     data_string = wav_file.readframes(wav_file.getnframes())
 
@@ -55,7 +64,7 @@ def get_slope(lg_freq, spectrum):
 
 def main(wav_path, sample_size=1024, display_spectra=False):
     wav_data = read_wav(wav_path)
-    assert len(wav_data) >= sample_size, 'Audio sample not large enough'
+    user_assert(len(wav_data) >= sample_size, 'Audio sample not large enough')
 
     # Split the data into a bunch of sample_size arrays
     wav_data = [wav_data[i*sample_size:(i+1)*sample_size]
@@ -88,7 +97,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # If a display is asked for, make sure we can provide one
-    assert plt if args.display else True, ("matplotlib is not installed, "
-                                           "cannot display")
+    user_assert(plt if args.display else True,
+                'matplotlib is not installed, cannot display')
 
     main(args.wavpath, sample_size=args.fft_size, display_spectra=args.display)
