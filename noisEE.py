@@ -6,6 +6,7 @@
 
 import argparse
 import array
+import math
 import numpy
 from numpy import fft
 import sys
@@ -109,5 +110,7 @@ if __name__ == '__main__':
     # If a display is asked for, make sure we can provide one
     user_assert(plt if args.display else True,
                 'matplotlib is not installed, cannot display')
+    user_assert(2**int(math.log(args.fft_size, 2)) == args.fft_size,
+                'FFT sample size should be a power of 2')
 
     main(args.wavpath, sample_size=args.fft_size, display_spectra=args.display)
