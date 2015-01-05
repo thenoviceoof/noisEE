@@ -10,6 +10,11 @@ import numpy
 from numpy import fft
 import wave
 
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    plt = None
+
 SAMPLE_RATE = 44100
 
 def read_wav(path):
@@ -48,7 +53,7 @@ def get_slope(lg_freq, spectrum):
     m, b = fit
     return m, error[0]**0.5
 
-def main(wav_path, sample_size=1024):
+def main(wav_path, sample_size=1024, display_spectra=False):
     wav_data = read_wav(wav_path)
     assert len(wav_data) >= sample_size, 'Audio sample not large enough'
 
@@ -62,8 +67,14 @@ def main(wav_path, sample_size=1024):
 
     # Join the spectra data (x) with the log frequency (y),
     # for a true lg-lg plot, removing the constant (to avoid -inf)
-    lg_freq = numpy.log10(fft.rfftfreq(sample_size)[1:])
+    freq = fft.rfftfreq(sample_size, 1.0/SAMPLE_RATE)[1:]
+    lg_freq = numpy.log10(freq)
     spectra_avg = spectra_avg[1:]
+
+    if display_spectra and plt:
+        plt.plot(freq, spectra_avg)
+        plt.xscale('log')
+        plt.show()
 
     # Find slope of falloff for data
     slope, error = get_slope(lg_freq, spectra_avg)
@@ -72,7 +83,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('wavpath', help='')
     parser.add_argument('--fft-size', type=int, default=1024, help='')
+    parser.add_argument('--display', action='store_true', help='')
 
     args = parser.parse_args()
 
-    main(args.wavpath, sample_size=args.fft_size)
+    # If a display is asked for, make sure we can provide one
+    assert plt if args.display else True, ("matplotlib is not installed, "
+                                           "cannot display")
+
+    main(args.wavpath, sample_size=args.fft_size, display_spectra=args.display)
