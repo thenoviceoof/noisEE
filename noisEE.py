@@ -37,8 +37,6 @@ def read_wav(path):
 
     user_assert(wav_file.getnchannels() == 1, 'Expect monochannel audio')
     user_assert(wav_file.getframerate() == SAMPLE_RATE, 'Expect 44.1k audio')
-    user_assert(wav_file.getnframes() <= SAMPLE_RATE,
-                'Expect less than a second of audio')
     user_assert(wav_file.getsampwidth() == 2, 'Expected signed 16 bit audio')
 
     data_string = wav_file.readframes(wav_file.getnframes())
