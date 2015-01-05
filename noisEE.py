@@ -18,6 +18,9 @@ except ImportError:
 
 SAMPLE_RATE = 44100
 
+################################################################################
+# utilities
+
 def user_assert(condition, message):
     '''
     A more user-friendly (no stack traces) way to check data for coherency.
@@ -25,6 +28,9 @@ def user_assert(condition, message):
     if not condition:
         print 'ERROR: %s' % message
         sys.exit(1)
+
+################################################################################
+# audio manipulation
 
 def read_wav(path):
     wav_file = wave.open(path)
@@ -54,6 +60,9 @@ def fft_db(wav_data):
 
     return fft_data_lg
 
+################################################################################
+# ML
+
 def get_slope(lg_freq, spectrum):
     '''
     Find the slope/error of the frequency spectrum
@@ -61,6 +70,9 @@ def get_slope(lg_freq, spectrum):
     fit, error, _, _, rcond = numpy.polyfit(lg_freq, spectrum, 1, full=True)
     m, b = fit
     return m, error[0]**0.5
+
+################################################################################
+# main
 
 def main(wav_path, sample_size=1024, display_spectra=False):
     wav_data = read_wav(wav_path)
