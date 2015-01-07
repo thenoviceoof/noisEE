@@ -19,6 +19,7 @@ except ImportError:
 
 SAMPLE_RATE = 44100
 
+PINK_SLOPE = 10.0
 PINK_FILTER = [
     0.99765, 0.0990460,
     0.96300, 0.2965164,
