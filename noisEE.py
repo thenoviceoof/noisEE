@@ -93,6 +93,8 @@ def main(wav_path, sample_size=1024, display_spectra=False):
 
     if display_spectra and plt:
         plt.plot(freq, spectra_avg)
+        plt.ylabel('Intensity (db)')
+        plt.xlabel('Frequency (hz)')
         plt.xscale('log')
         plt.show()
 
