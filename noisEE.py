@@ -19,6 +19,13 @@ except ImportError:
 
 SAMPLE_RATE = 44100
 
+PINK_FILTER = [
+    0.99765, 0.0990460,
+    0.96300, 0.2965164,
+    0.57000, 1.0526913,
+    0, 0.1848
+]
+
 ################################################################################
 # utilities
 
@@ -61,6 +68,24 @@ def fft_db(wav_data):
 
 ################################################################################
 # ML
+
+def apply_filter(params, data):
+    '''
+    Apply a digital filter to a signal
+    '''
+    assert len(params) % 2 == 0
+    prev_coeff = params[::2]
+    mix_coeff = params[1::2]
+    assert len(prev_coeff) == len(mix_coeff)
+    coeff_count = len(prev_coeff)
+
+    filter_state = [0 for i in range(coeff_count)]
+    filtered_data = []
+    for d in data:
+        filter_state = [prev_coeff[i]*filter_state[i] + mix_coeff[i]*d
+                        for i in range(coeff_count)]
+        filtered_data.append(sum(filter_state))
+    return filtered_data
 
 def get_slope(lg_freq, spectrum):
     '''
