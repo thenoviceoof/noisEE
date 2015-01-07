@@ -66,9 +66,6 @@ def fft_db(wav_data):
 
     return fft_data_lg
 
-################################################################################
-# ML
-
 def apply_filter(params, data):
     '''
     Apply a digital filter to a signal
@@ -95,6 +92,34 @@ def get_slope(lg_freq, spectrum):
     m, b = fit
     return m, error[0]**0.5
 
+def get_filter_slope(data, filter_params, truncate_start=0, sample_size=1024):
+    # Apply the filter
+    data = apply_filter(filter_params, data)
+
+    # Throw data away from the beginning, for better filter data
+    data = data[truncate_start:]
+
+    # Split the data into a bunch of sample_size arrays
+    data = [data[i*sample_size:(i+1)*sample_size]
+            for i in range(len(data)/sample_size)]
+
+    # Apply the fft to each bucket, and average the frequency spectrums
+    spectra = [fft_db(wd) for wd in data]
+    spectra_avg = sum(spectra) / len(spectra)
+
+    # Generate the log frequency (y) for the spectra data (x),
+    # for a true lg-lg plot, removing the constant (to avoid -inf)
+    freq = fft.rfftfreq(sample_size, 1.0/SAMPLE_RATE)[1:]
+    lg_freq = numpy.log10(freq)
+    spectra_avg = spectra_avg[1:]
+
+    slope, error = get_slope(lg_freq, spectra_avg)
+    return slope, error
+
+################################################################################
+# ML
+
+
 ################################################################################
 # main
 
@@ -102,29 +127,9 @@ def main(wav_path, sample_size=1024, display_spectra=False):
     wav_data = read_wav(wav_path)
     user_assert(len(wav_data) >= sample_size, 'Audio sample not large enough')
 
-    # Split the data into a bunch of sample_size arrays
-    wav_data = [wav_data[i*sample_size:(i+1)*sample_size]
-                for i in range(len(wav_data)/sample_size)]
-
-    # Apply the fft to each bucket, and average the frequency spectrums
-    spectra = [fft_db(wd) for wd in wav_data]
-    spectra_avg = sum(spectra) / len(spectra)
-
-    # Join the spectra data (x) with the log frequency (y),
-    # for a true lg-lg plot, removing the constant (to avoid -inf)
-    freq = fft.rfftfreq(sample_size, 1.0/SAMPLE_RATE)[1:]
-    lg_freq = numpy.log10(freq)
-    spectra_avg = spectra_avg[1:]
-
-    if display_spectra and plt:
-        plt.plot(freq, spectra_avg)
-        plt.ylabel('Intensity (db)')
-        plt.xlabel('Frequency (hz)')
-        plt.xscale('log')
-        plt.show()
-
-    # Find slope of falloff for data
-    slope, error = get_slope(lg_freq, spectra_avg)
+    slope, error = get_filter_slope(wav_data, PINK_FILTER,
+                                    sample_size=sample_size)
+    print slope, error
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
