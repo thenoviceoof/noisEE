@@ -122,13 +122,13 @@ def get_filter_slope(data, filter_params, truncate_start=0, sample_size=1024):
 ################################################################################
 # ML
 
-def jitter_params(parameters, parameters_error, step_multiplier=1.0):
+def jitter_params(parameters, parameters_error, step_multiplier=0.01):
     '''
     '''
     jittered_params = copy.copy(parameters)
     error_step = parameters_error * step_multiplier
-    jittered_params = [param + error_step * (random.random() - 0.5)
-                       for param in jittered_params]
+    index = random.randint(0, len(jittered_params) - 1)
+    jittered_params[index] += error_step * (random.random() - 0.5)
     return jittered_params
 
 def combine_error(target_slope, slope, error,
@@ -137,7 +137,7 @@ def combine_error(target_slope, slope, error,
 
 def hill_climb(data, target_slope, seed_params,
                max_slope_error=0.05, max_error=10,
-               step_multiplier=1.0, branching_factor=20, iteration_cap=1000,
+               step_multiplier=0.01, branching_factor=20, iteration_cap=1000,
                truncate_start=0, sample_size=1024):
     '''
     An algorithm to hill climb to the params that get you the best slope
