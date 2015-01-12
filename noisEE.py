@@ -131,6 +131,10 @@ def jitter_params(parameters, parameters_error, step_multiplier=1.0):
                        for param in jittered_params]
     return jittered_params
 
+def combine_error(target_slope, slope, error,
+                  max_slope_error=0.05, max_error=10):
+    return (target_slope - slope)/max_slope_error + error/max_error
+
 def hill_climb(data, target_slope, seed_params,
                max_slope_error=0.05, max_error=10,
                step_multiplier=1.0, branching_factor=20, iteration_cap=1000,
@@ -142,20 +146,24 @@ def hill_climb(data, target_slope, seed_params,
     slope, error = get_filter_slope(data, params,
                                     truncate_start=truncate_start,
                                     sample_size=sample_size)
+    combined_error = combine_error(target_slope, slope, error,
+                                   max_slope_error=max_slope_error,
+                                   max_error=max_error)
     while error > max_error and abs(slope - target_slope) > max_slope_error:
         max_params = None
         max_params_error = None
         # Generate a bunch of jittered params
         for i in range(branching_factor):
-            jittered_params = jitter_params(params, error,
+            jittered_params = jitter_params(params, combined_error,
                                             step_multiplier=step_multiplier)
             # Figure out the param's fit
             slope, error = get_filter_slope(data, jittered_params,
                                             truncate_start=truncate_start,
                                             sample_size=sample_size)
             # Find the argmax
-            combined_error = ((target_slope - slope)/max_slope_error +
-                              error/max_error)
+            combined_error = combine_error(target_slope, slope, error,
+                                           max_slope_error=max_slope_error,
+                                           max_error=max_error)
             if max_params_error is None or combined_error < max_params_error:
                 max_params = jittered_params
         params = jittered_params
