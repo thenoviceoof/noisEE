@@ -166,6 +166,7 @@ def hill_climb(data, target_slope, seed_params,
                                            max_error=max_error)
             if max_params_error is None or combined_error < max_params_error:
                 max_params = jittered_params
+                max_params_error = combined_error
         params = jittered_params
     return params
 
