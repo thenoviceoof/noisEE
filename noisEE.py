@@ -138,7 +138,7 @@ def combine_error(target_slope, slope, error,
 def hill_climb(data, target_slope, seed_params,
                max_slope_error=0.05, max_error=10,
                step_multiplier=0.01, branching_factor=20, iteration_cap=1000,
-               truncate_start=0, sample_size=1024):
+               truncate_start=0, sample_size=1024, verbose=False):
     '''
     An algorithm to hill climb to the params that get you the best slope
     '''
@@ -146,12 +146,16 @@ def hill_climb(data, target_slope, seed_params,
     slope, error = get_filter_slope(data, params,
                                     truncate_start=truncate_start,
                                     sample_size=sample_size)
+    if verbose:
+        print 'Starting Parameters: slope({:.3f}:{:.3f}) error({:.3f})'.format(
+            slope, target_slope, error)
     combined_error = combine_error(target_slope, slope, error,
                                    max_slope_error=max_slope_error,
                                    max_error=max_error)
+    iter_count = 0
     while error > max_error and abs(slope - target_slope) > max_slope_error:
-        max_params = None
-        max_params_error = None
+        max_params, max_params_combined_error = params, combined_error
+        max_params_slope, max_params_error = slope, error
         # Generate a bunch of jittered params
         for i in range(branching_factor):
             jittered_params = jitter_params(params, combined_error,
@@ -160,14 +164,26 @@ def hill_climb(data, target_slope, seed_params,
             slope, error = get_filter_slope(data, jittered_params,
                                             truncate_start=truncate_start,
                                             sample_size=sample_size)
+            if verbose:
+                print 'Jit[{: 2}/{}] S{:.3f} E{:.3f}'.format(
+                    i, branching_factor, slope, error),
+                print '\r',
             # Find the argmax
             combined_error = combine_error(target_slope, slope, error,
                                            max_slope_error=max_slope_error,
                                            max_error=max_error)
-            if max_params_error is None or combined_error < max_params_error:
+            if (max_params_combined_error is None or
+                combined_error < max_params_error):
                 max_params = jittered_params
-                max_params_error = combined_error
-        params = jittered_params
+                max_params_combined_error = combined_error
+                max_params_slope = slope
+                max_params_error = error
+        params = max_params
+        iter_count += 1
+
+        if verbose:
+            print 'Iter[{: 3}] S{:.3f} E{:.3f}'.format(
+                iter_count, max_params_slope, max_params_error)
     return params
 
 ################################################################################
