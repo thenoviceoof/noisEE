@@ -193,9 +193,7 @@ def main(wav_path, sample_size=1024, display_spectra=False):
     wav_data = read_wav(wav_path)
     user_assert(len(wav_data) >= sample_size, 'Audio sample not large enough')
 
-    slope, error = get_filter_slope(wav_data, PINK_FILTER,
-                                    sample_size=sample_size)
-    print slope, error
+    print hill_climb(wav_data, -10, PINK_FILTER, verbose=True)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
