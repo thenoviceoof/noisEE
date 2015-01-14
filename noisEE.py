@@ -179,15 +179,15 @@ def hill_climb(data, target_slope, seed_params,
                     sys.stdout.flush()
                 continue
 
-            if verbose:
-                print 'Jit[{:2}/{}] S{:2.3f} E{:2.3f}'.format(
-                    i+1, branching_factor, slope, error),
-                print '\r',
-                sys.stdout.flush()
             # Find the argmax
             combined_error = combine_error(target_slope, slope, error,
                                            max_slope_error=max_slope_error,
                                            max_error=max_error)
+            if verbose:
+                print 'Jit[{:2}/{}] S{:2.3f} E{:2.3f} CE{:2.3f}'.format(
+                    i+1, branching_factor, slope, error, combined_error),
+                print '\r',
+                sys.stdout.flush()
             if (max_params_combined_error is None or
                 combined_error < max_params_error):
                 max_params = jittered_params
@@ -198,8 +198,9 @@ def hill_climb(data, target_slope, seed_params,
         iter_count += 1
 
         if verbose:
-            print 'Iter[{:3}] S{:.3f} E{:.3f}'.format(
-                iter_count, max_params_slope, max_params_error)
+            print 'Itera[{:3}] S{:.3f} E{:.3f} CE{:2.3f}'.format(
+                iter_count, max_params_slope, max_params_error,
+                max_params_combined_error)
     return params
 
 ################################################################################
