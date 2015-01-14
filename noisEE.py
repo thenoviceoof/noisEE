@@ -161,9 +161,18 @@ def hill_climb(data, target_slope, seed_params,
             jittered_params = jitter_params(params, combined_error,
                                             step_multiplier=step_multiplier)
             # Figure out the param's fit
-            slope, error = get_filter_slope(data, jittered_params,
-                                            truncate_start=truncate_start,
-                                            sample_size=sample_size)
+            try:
+                slope, error = get_filter_slope(data, jittered_params,
+                                                truncate_start=truncate_start,
+                                                sample_size=sample_size)
+            except FloatingPointError:
+                if verbose:
+                    print 'Jit[{:2}/{}] Skipping errors'.format(
+                        i+1, branching_factor),
+                    print '\r',
+                    sys.stdout.flush()
+                continue
+
             if verbose:
                 print 'Jit[{:2}/{}] S{:2.3f} E{:2.3f}'.format(
                     i+1, branching_factor, slope, error),
@@ -193,6 +202,8 @@ def hill_climb(data, target_slope, seed_params,
 def main(wav_path, sample_size=1024, display_spectra=False):
     wav_data = read_wav(wav_path)
     user_assert(len(wav_data) >= sample_size, 'Audio sample not large enough')
+
+    numpy.seterr(all='raise')
 
     print hill_climb(wav_data, -10, PINK_FILTER, verbose=True)
 
