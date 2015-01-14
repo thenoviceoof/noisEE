@@ -135,7 +135,7 @@ def combine_error(target_slope, slope, error,
                   max_slope_error=0.05, max_error=10):
     slope_error = 0
     if abs(slope - target_slope) > max_slope_error:
-        slope_error = abs(target_slope - slope)/max_slope_error - 1
+        slope_error = abs(target_slope - slope)/max_slope_error
     error_error = 0
     if error > max_error:
         error_error = error/max_error - 1
