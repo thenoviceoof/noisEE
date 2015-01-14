@@ -125,7 +125,7 @@ def get_filter_slope(data, filter_params, truncate_start=0, sample_size=1024):
 def jitter_params(parameters, parameters_error, step_multiplier=0.01):
     '''
     '''
-    jittered_params = copy.copy(parameters)
+    jittered_params = copy.deepcopy(parameters)
     error_step = parameters_error * step_multiplier
     index = random.randint(0, len(jittered_params) - 1)
     jittered_params[index] += error_step * (random.random() - 0.5)
