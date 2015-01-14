@@ -133,7 +133,13 @@ def jitter_params(parameters, parameters_error, step_multiplier=0.01):
 
 def combine_error(target_slope, slope, error,
                   max_slope_error=0.05, max_error=10):
-    return (target_slope - slope)/max_slope_error + error/max_error
+    slope_error = 0
+    if abs(slope - target_slope) > max_slope_error:
+        slope_error = abs(target_slope - slope)/max_slope_error - 1
+    error_error = 0
+    if error > max_error:
+        error_error = error/max_error - 1
+    return slope_error + error_error
 
 def hill_climb(data, target_slope, seed_params,
                max_slope_error=0.05, max_error=10,
