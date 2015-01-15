@@ -8,6 +8,7 @@ import argparse
 import array
 import copy
 import math
+import multiprocessing
 import numpy
 from numpy import fft
 import random
@@ -142,66 +143,86 @@ def combine_error(target_slope, slope, error,
         error_error = 2 * (error/max_error - 1)
     return slope_error + error_error
 
-def hill_climb(data, target_slope, seed_params,
-               max_slope_error=0.05, max_error=10,
-               step_multiplier=0.01, branching_factor=20, iteration_cap=1000,
-               truncate_start=0, sample_size=1024, verbose=False):
+def hill_climb_worker(wav_data, param_queue, result_queue,
+                      max_slope_error=0.05, max_error=10,
+                      truncate_start=0, sample_size=1024):
+    while True:
+        target_slope, params = param_queue.get()
+        # Exit condition
+        if params is None:
+            return
+
+        try:
+            slope, error = get_filter_slope(wav_data, params,
+                                            truncate_start=truncate_start,
+                                            sample_size=sample_size)
+        except FloatingPointError:
+            # Report failure to help signal when all the data is in.
+            result_queue.put(None)
+            continue
+        combined_error = combine_error(target_slope, slope, error,
+                                       max_slope_error=max_slope_error,
+                                       max_error=max_error)
+
+        result_queue.put((params, slope, error, combined_error))
+
+def parallel_hill_climb(data, target_slope, seed_params,
+                        param_queue, result_queue, iteration_cap=1000,
+                        step_multiplier=0.01, branching_factor=20,
+                        max_slope_error=0.05, max_error=10,
+                        verbose=False):
     '''
     An algorithm to hill climb to the params that get you the best slope
     '''
     params = seed_params
-    slope, error = get_filter_slope(data, params,
-                                    truncate_start=truncate_start,
-                                    sample_size=sample_size)
+    param_queue.put((target_slope, seed_params))
+    minp_result = result_queue.get()
+    minp_params, minp_slope, minp_error, minp_combined_error = minp_result
+
     if verbose:
-        print 'Starting Parameters: slope({:.3f}:{:.3f}) error({:.3f}:{:.3f})'.format(
-            slope, target_slope, error, max_error)
-    combined_error = combine_error(target_slope, slope, error,
-                                   max_slope_error=max_slope_error,
-                                   max_error=max_error)
+        print 'Start Params: slope({:.3f}:{:.3f}) error({:.3f}:{:.3f})'.format(
+            minp_slope, target_slope, minp_error, max_error)
+
     iter_count = 0
-    max_params, max_params_combined_error = params, combined_error
-    max_params_slope, max_params_error = slope, error
-    while error > max_error or abs(slope - target_slope) > max_slope_error:
-        # Generate a bunch of jittered params
+    while (minp_error > max_error or
+           abs(minp_slope - target_slope) > max_slope_error):
+        # Make some parameters
+        jittered_params = [jitter_params(minp_params, minp_combined_error,
+                                         step_multiplier=step_multiplier)
+                           for i in range(branching_factor)]
+
+        # Let the workers at it
+        for jparams in jittered_params:
+            param_queue.put((target_slope, jparams))
+
+        # Get the results back (include the previous iteration)
+        results = [(minp_params, minp_slope, minp_error, minp_combined_error)]
         for i in range(branching_factor):
-            jittered_params = jitter_params(params, combined_error,
-                                            step_multiplier=step_multiplier)
-            # Figure out the param's fit
-            try:
-                slope, error = get_filter_slope(data, jittered_params,
-                                                truncate_start=truncate_start,
-                                                sample_size=sample_size)
-            except FloatingPointError:
+            r = result_queue.get()
+            if r:
+                results.append(r)
+                if verbose:
+                    _, slope, error, combined_error = r
+                    print 'Jit[{:2}/{}] S{:2.3f} E{:2.3f} CE{:2.3f}'.format(
+                        i+1, branching_factor, slope, error, combined_error),
+                    print '\r',
+                    sys.stdout.flush()
+            else:
                 if verbose:
                     print 'Jit[{:2}/{}] Skipping errors'.format(
                         i+1, branching_factor),
                     print '\r',
                     sys.stdout.flush()
-                continue
 
-            # Find the argmax
-            combined_error = combine_error(target_slope, slope, error,
-                                           max_slope_error=max_slope_error,
-                                           max_error=max_error)
-            if verbose:
-                print 'Jit[{:2}/{}] S{:2.3f} E{:2.3f} CE{:2.3f}'.format(
-                    i+1, branching_factor, slope, error, combined_error),
-                print '\r',
-                sys.stdout.flush()
-            if combined_error < max_params_combined_error:
-                max_params = jittered_params
-                max_params_combined_error = combined_error
-                max_params_slope = slope
-                max_params_error = error
-        params = max_params
+        # Find the argmin
+        minp_result = min(results, key=lambda r:r[3])
+        minp_params, minp_slope, minp_error, minp_combined_error = minp_result
         iter_count += 1
 
         if verbose:
             print 'Itera[{:3}] S{:.3f} E{:.3f} CE{:2.3f}'.format(
-                iter_count, max_params_slope, max_params_error,
-                max_params_combined_error)
-    return params
+                iter_count, minp_slope, minp_error, minp_combined_error)
+    return minp_params
 
 ################################################################################
 # main
@@ -212,7 +233,25 @@ def main(wav_path, sample_size=1024, display_spectra=False):
 
     numpy.seterr(all='raise')
 
-    print hill_climb(wav_data, -10, PINK_FILTER, verbose=True)
+    # Start workers
+    param_queue = multiprocessing.Queue()
+    result_queue = multiprocessing.Queue()
+    process_args = (wav_data, param_queue, result_queue)
+    process_list = [multiprocessing.Process(target=hill_climb_worker,
+                                            args=process_args)
+                    for i in range(multiprocessing.cpu_count())]
+    for proc in process_list:
+        proc.start()
+
+    # Start the main hill climbing algorithm
+    print parallel_hill_climb(wav_data, -10, PINK_FILTER,
+                              param_queue, result_queue, verbose=True)
+
+    # Shut down workers
+    for i in range(len(process_list)):
+        param_queue.put(None)
+    for proc in process_list:
+        proc.join()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
