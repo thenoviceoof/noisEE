@@ -203,12 +203,14 @@ def parallel_hill_climb(data, target_slope, seed_params,
                 results.append(r)
                 if verbose:
                     _, slope, error, combined_error = r
+                    sys.stdout.write("\033[K")
                     print 'Jit[{:2}/{}] S{:2.3f} E{:2.3f} CE{:2.3f}'.format(
                         i+1, branching_factor, slope, error, combined_error),
                     print '\r',
                     sys.stdout.flush()
             else:
                 if verbose:
+                    sys.stdout.write("\033[K")
                     print 'Jit[{:2}/{}] Skipping errors'.format(
                         i+1, branching_factor),
                     print '\r',
