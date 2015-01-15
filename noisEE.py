@@ -135,10 +135,11 @@ def combine_error(target_slope, slope, error,
                   max_slope_error=0.05, max_error=10):
     slope_error = 0
     if abs(slope - target_slope) > max_slope_error:
-        slope_error = abs(target_slope - slope)/max_slope_error
+        slope_error = abs(target_slope - slope)/max_slope_error - 1
     error_error = 0
     if error > max_error:
-        error_error = error/max_error - 1
+        # 4 chosen empirically, to speed up convergence
+        error_error = 2 * (error/max_error - 1)
     return slope_error + error_error
 
 def hill_climb(data, target_slope, seed_params,
@@ -159,9 +160,9 @@ def hill_climb(data, target_slope, seed_params,
                                    max_slope_error=max_slope_error,
                                    max_error=max_error)
     iter_count = 0
-    while error > max_error and abs(slope - target_slope) > max_slope_error:
-        max_params, max_params_combined_error = params, combined_error
-        max_params_slope, max_params_error = slope, error
+    max_params, max_params_combined_error = params, combined_error
+    max_params_slope, max_params_error = slope, error
+    while error > max_error or abs(slope - target_slope) > max_slope_error:
         # Generate a bunch of jittered params
         for i in range(branching_factor):
             jittered_params = jitter_params(params, combined_error,
@@ -188,8 +189,7 @@ def hill_climb(data, target_slope, seed_params,
                     i+1, branching_factor, slope, error, combined_error),
                 print '\r',
                 sys.stdout.flush()
-            if (max_params_combined_error is None or
-                combined_error < max_params_error):
+            if combined_error < max_params_combined_error:
                 max_params = jittered_params
                 max_params_combined_error = combined_error
                 max_params_slope = slope
