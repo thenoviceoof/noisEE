@@ -271,8 +271,28 @@ def main(wav_path, verbose=False, sample_size=1024, truncate_start=0,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('wavpath', help='')
-    parser.add_argument('--fft-size', type=int, default=1024, help='')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='Turn on verbose debug output.')
+    parser.add_argument('--size', '--fft-size', type=int, default=1024,
+                        help='Change the size of the FFT sample.')
+    parser.add_argument('-t', '--truncate', type=int, default=0,
+                        help=('Truncate some samples from filtered audio before'
+                              ' getting spectra.'))
+    parser.add_argument('-b', '--branch', type=int, default=20,
+                        help='How many branches to generate at each iteration.')
+    parser.add_argument('-i', '--iter-cap', type=int, default=1000,
+                        help='How many iterations to allow before failing.')
+    parser.add_argument('-s', '--step-multiplier', type=float, default=0.01,
+                        help='How large of a step to allow when jittering.')
+    parser.add_argument('-a', '--slope-error', type=float, default=0.05,
+                        help='How large of a difference in slope to allow.')
+    parser.add_argument('-e', '--max-error', type=float, default=10.0,
+                        help='How large of a residual fit error to allow.')
 
     args = parser.parse_args()
 
-    main(args.wavpath, sample_size=args.fft_size)
+    main(args.wavpath, verbose=args.verbose,
+         sample_size=args.size, truncate_start=args.truncate,
+         branching_factor=args.branch, iteration_cap=args.iter_cap,
+         step_multiplier=args.step_multiplier,
+         max_slope_error=args.slope_error, max_error=args.max_error)
