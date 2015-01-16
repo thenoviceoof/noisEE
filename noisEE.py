@@ -242,7 +242,9 @@ def parallel_hill_climb(data, target_slope, seed_params,
 ################################################################################
 # main
 
-def main(wav_path, verbose=False, sample_size=1024, truncate_start=0,
+def main(wav_path, verbose=False,
+         white_slope=0.0, black_slope=10.0, slope_step=0.1,
+         sample_size=1024, truncate_start=0,
          branching_factor=20, iteration_cap=1000,
          step_multiplier=0.01, max_slope_error=0.05, max_error=10):
     wav_data = read_wav(wav_path)
@@ -261,15 +263,29 @@ def main(wav_path, verbose=False, sample_size=1024, truncate_start=0,
     for proc in process_list:
         proc.start()
 
-    # Start the main hill climbing algorithm
-    print parallel_hill_climb(wav_data, -10, PINK_FILTER,
-                              param_queue, result_queue,
-                              step_multiplier=step_multiplier,
-                              iteration_cap=iteration_cap,
-                              branching_factor=branching_factor,
-                              max_slope_error=max_slope_error,
-                              max_error=max_error,
-                              verbose=verbose)
+    filter_params = WHITE_FILTER
+
+    # Find the slopes we want
+    assert white_slope < black_slope
+    slope_steps = numpy.arange(white_slope, black_slope, slope_step)
+    for i, target_slope in enumerate(slope_steps):
+        print '=================================================='
+
+        # Hill climb over each slope
+        filter_params = parallel_hill_climb(wav_data,
+                                            target_slope, filter_params,
+                                            param_queue, result_queue,
+                                            step_multiplier=step_multiplier,
+                                            iteration_cap=iteration_cap,
+                                            branching_factor=branching_factor,
+                                            max_slope_error=max_slope_error,
+                                            max_error=max_error,
+                                            verbose=verbose)
+        print 'FILTER[{}/{}] (slope: {}):'.format(
+            i, len(slope_steps), target_slope)
+        for j in range(len(filter_params)/2):
+            print '\tb{i} = {c1} * b{i} + {c2} * w'.format(
+                i=j, c1=filter_params[2*j], c2=filter_params[2*j+1])
 
     # Shut down workers
     for i in range(len(process_list)):
@@ -282,6 +298,12 @@ if __name__ == '__main__':
     parser.add_argument('wavpath', help='')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Turn on verbose debug output.')
+    parser.add_argument('-u', '--white-slope', type=float, default=0.0,
+                        help='White noise falloff (slower falloff) db/oct')
+    parser.add_argument('-d', '--black-slope', type=float, default=10.0,
+                        help='Blacker noise falloff (faster falloff) db/oct')
+    parser.add_argument('-s', '--slope-step', type=float, default=0.1,
+                        help='Granularity of the steps between maximization')
     parser.add_argument('--size', '--fft-size', type=int, default=1024,
                         help='Change the size of the FFT sample.')
     parser.add_argument('-t', '--truncate', type=int, default=0,
@@ -291,7 +313,7 @@ if __name__ == '__main__':
                         help='How many branches to generate at each iteration.')
     parser.add_argument('-i', '--iter-cap', type=int, default=1000,
                         help='How many iterations to allow before failing.')
-    parser.add_argument('-s', '--step-multiplier', type=float, default=0.01,
+    parser.add_argument('-sm', '--step-multiplier', type=float, default=0.01,
                         help='How large of a step to allow when jittering.')
     parser.add_argument('-a', '--slope-error', type=float, default=0.05,
                         help='How large of a difference in slope to allow.')
@@ -301,6 +323,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     main(args.wavpath, verbose=args.verbose,
+         white_slope=args.white_slope, black_slope=args.black_slope,
+         slope_step=args.slope_step,
          sample_size=args.size, truncate_start=args.truncate,
          branching_factor=args.branch, iteration_cap=args.iter_cap,
          step_multiplier=args.step_multiplier,
