@@ -147,10 +147,11 @@ def hill_climb_worker(wav_data, param_queue, result_queue,
                       max_slope_error=0.05, max_error=10,
                       truncate_start=0, sample_size=1024):
     while True:
-        target_slope, params = param_queue.get()
+        quitp = param_queue.get()
         # Exit condition
-        if params is None:
+        if quitp is None:
             return
+        target_slope, params = quitp
 
         try:
             slope, error = get_filter_slope(wav_data, params,
