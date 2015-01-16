@@ -233,7 +233,9 @@ def parallel_hill_climb(data, target_slope, seed_params,
 ################################################################################
 # main
 
-def main(wav_path, sample_size=1024):
+def main(wav_path, verbose=False, sample_size=1024, truncate_start=0,
+         branching_factor=20, iteration_cap=1000,
+         step_multiplier=0.01, max_slope_error=0.05, max_error=10):
     wav_data = read_wav(wav_path)
     user_assert(len(wav_data) >= sample_size, 'Audio sample not large enough')
 
@@ -242,7 +244,8 @@ def main(wav_path, sample_size=1024):
     # Start workers
     param_queue = multiprocessing.Queue()
     result_queue = multiprocessing.Queue()
-    process_args = (wav_data, param_queue, result_queue)
+    process_args = (wav_data, param_queue, result_queue,
+                    max_slope_error, max_error, truncate_start, sample_size)
     process_list = [multiprocessing.Process(target=hill_climb_worker,
                                             args=process_args)
                     for i in range(multiprocessing.cpu_count())]
@@ -251,7 +254,13 @@ def main(wav_path, sample_size=1024):
 
     # Start the main hill climbing algorithm
     print parallel_hill_climb(wav_data, -10, PINK_FILTER,
-                              param_queue, result_queue, verbose=True)
+                              param_queue, result_queue,
+                              step_multiplier=step_multiplier,
+                              iteration_cap=iteration_cap,
+                              branching_factor=branching_factor,
+                              max_slope_error=max_slope_error,
+                              max_error=max_error,
+                              verbose=True)
 
     # Shut down workers
     for i in range(len(process_list)):
