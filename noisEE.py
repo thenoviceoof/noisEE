@@ -261,7 +261,7 @@ def main(wav_path, verbose=False, sample_size=1024, truncate_start=0,
                               branching_factor=branching_factor,
                               max_slope_error=max_slope_error,
                               max_error=max_error,
-                              verbose=True)
+                              verbose=verbose)
 
     # Shut down workers
     for i in range(len(process_list)):
