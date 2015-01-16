@@ -233,7 +233,7 @@ def parallel_hill_climb(data, target_slope, seed_params,
 ################################################################################
 # main
 
-def main(wav_path, sample_size=1024, display_spectra=False):
+def main(wav_path, sample_size=1024):
     wav_data = read_wav(wav_path)
     user_assert(len(wav_data) >= sample_size, 'Audio sample not large enough')
 
@@ -263,14 +263,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('wavpath', help='')
     parser.add_argument('--fft-size', type=int, default=1024, help='')
-    parser.add_argument('--display', action='store_true', help='')
 
     args = parser.parse_args()
 
-    # If a display is asked for, make sure we can provide one
-    user_assert(plt if args.display else True,
-                'matplotlib is not installed, cannot display')
-    user_assert(2**int(math.log(args.fft_size, 2)) == args.fft_size,
-                'FFT sample size should be a power of 2')
-
-    main(args.wavpath, sample_size=args.fft_size, display_spectra=args.display)
+    main(args.wavpath, sample_size=args.fft_size)
