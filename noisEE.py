@@ -186,6 +186,10 @@ def parallel_hill_climb(data, target_slope, seed_params,
     iter_count = 0
     while (minp_error > max_error or
            abs(minp_slope - target_slope) > max_slope_error):
+        # Keep a lid on the iterations, detect when a target is impossible.
+        if iter_count > iteration_cap:
+            raise Exception('Algorithm seems stuck, too many iterations?')
+
         # Make some parameters
         jittered_params = [jitter_params(minp_params, minp_combined_error,
                                          step_multiplier=step_multiplier)
