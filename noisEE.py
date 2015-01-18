@@ -188,7 +188,7 @@ def parallel_hill_climb(data, target_slope, seed_params,
     minp_result = result_queue.get()
     minp_params, minp_slope, minp_error, minp_combined_error = minp_result
 
-    if verbose:
+    if verbose == 2:
         print 'Start Params: slope({:.3f}:{:.3f}) error({:.3f}:{:.3f})'.format(
             minp_slope, target_slope, minp_error, max_error)
 
@@ -214,7 +214,7 @@ def parallel_hill_climb(data, target_slope, seed_params,
             r = result_queue.get()
             if r:
                 results.append(r)
-                if verbose:
+                if verbose == 2:
                     _, slope, error, combined_error = r
                     sys.stdout.write("\033[K")
                     print 'Jit[{:2}/{}] S{:2.3f} E{:2.3f} CE{:2.3f}'.format(
@@ -222,7 +222,7 @@ def parallel_hill_climb(data, target_slope, seed_params,
                     print '\r',
                     sys.stdout.flush()
             else:
-                if verbose:
+                if verbose == 2:
                     sys.stdout.write("\033[K")
                     print 'Jit[{:2}/{}] Skipping errors'.format(
                         i+1, branching_factor),
@@ -234,7 +234,7 @@ def parallel_hill_climb(data, target_slope, seed_params,
         minp_params, minp_slope, minp_error, minp_combined_error = minp_result
         iter_count += 1
 
-        if verbose:
+        if verbose == 1:
             print 'Itera[{:3}] S{:.3f} E{:.3f} CE{:2.3f}'.format(
                 iter_count, minp_slope, minp_error, minp_combined_error)
     return minp_params
@@ -298,6 +298,8 @@ if __name__ == '__main__':
     parser.add_argument('wavpath', help='')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Turn on verbose debug output.')
+    parser.add_argument('-vv', action='store_true',
+                        help='Turn on really verbose debug output.')
     parser.add_argument('-u', '--white-slope', type=float, default=0.0,
                         help='White noise falloff (slower falloff) db/oct')
     parser.add_argument('-d', '--black-slope', type=float, default=10.0,
@@ -322,7 +324,13 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    main(args.wavpath, verbose=args.verbose,
+    verbose = 0
+    if args.vv:
+        verbose = 2
+    elif args.verbose:
+        verbose = 1
+
+    main(args.wavpath, verbose=verbose,
          white_slope=args.white_slope, black_slope=args.black_slope,
          slope_step=args.slope_step,
          sample_size=args.size, truncate_start=args.truncate,
