@@ -188,7 +188,7 @@ def parallel_hill_climb(data, target_slope, seed_params,
     minp_result = result_queue.get()
     minp_params, minp_slope, minp_error, minp_combined_error = minp_result
 
-    if verbose == 2:
+    if verbose >= 2:
         print 'Start Params: slope({:.3f}:{:.3f}) error({:.3f}:{:.3f})'.format(
             minp_slope, target_slope, minp_error, max_error)
 
@@ -216,7 +216,7 @@ def parallel_hill_climb(data, target_slope, seed_params,
             r = result_queue.get()
             if r:
                 results.append(r)
-                if verbose == 2:
+                if verbose >= 2:
                     _, slope, error, combined_error = r
                     sys.stdout.write("\033[K")
                     print 'Jit[{:2}/{}] S{:2.3f} E{:2.3f} CE{:2.3f}'.format(
@@ -224,7 +224,7 @@ def parallel_hill_climb(data, target_slope, seed_params,
                     print '\r',
                     sys.stdout.flush()
             else:
-                if verbose == 2:
+                if verbose >= 2:
                     sys.stdout.write("\033[K")
                     print 'Jit[{:2}/{}] Skipping errors'.format(
                         i+1, branching_factor),
@@ -243,7 +243,7 @@ def parallel_hill_climb(data, target_slope, seed_params,
         minp_params, minp_slope, minp_error, minp_combined_error = minp_result
         iter_count += 1
 
-        if verbose == 1:
+        if verbose >= 1:
             print 'Itera[{:3}] S{:.3f} E{:.3f} CE{:2.3f}'.format(
                 iter_count, minp_slope, minp_error, minp_combined_error)
 
