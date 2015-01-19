@@ -176,7 +176,8 @@ def hill_climb_worker(wav_data, param_queue, result_queue,
         result_queue.put((params, slope, error, combined_error))
 
 def parallel_hill_climb(data, target_slope, seed_params,
-                        param_queue, result_queue, iteration_cap=1000,
+                        param_queue, result_queue,
+                        iteration_cap=1000, spin_cap=100,
                         step_multiplier=0.01, branching_factor=20,
                         max_slope_error=0.05, max_error=10,
                         verbose=False):
@@ -197,7 +198,7 @@ def parallel_hill_climb(data, target_slope, seed_params,
     while (minp_error > max_error or
            abs(minp_slope - target_slope) > max_slope_error):
         # Keep a lid on the iterations, detect when a target is impossible.
-        if iter_count > iteration_cap:
+        if iter_count > iteration_cap or local_pressure > spin_cap:
             raise Exception('Algorithm seems stuck, too many iterations?')
 
         # Make some parameters
@@ -258,7 +259,7 @@ def parallel_hill_climb(data, target_slope, seed_params,
 def main(wav_path, verbose=False,
          white_slope=0.0, black_slope=10.0, slope_step=0.1,
          sample_size=1024, truncate_start=0,
-         branching_factor=20, iteration_cap=1000,
+         branching_factor=20, iteration_cap=1000, spin_cap=100,
          step_multiplier=0.01, max_slope_error=0.05, max_error=10):
     wav_data = read_wav(wav_path)
     user_assert(len(wav_data) >= sample_size, 'Audio sample not large enough')
@@ -290,6 +291,7 @@ def main(wav_path, verbose=False,
                                             param_queue, result_queue,
                                             step_multiplier=step_multiplier,
                                             iteration_cap=iteration_cap,
+                                            spin_cap=spin_cap,
                                             branching_factor=branching_factor,
                                             max_slope_error=max_slope_error,
                                             max_error=max_error,
@@ -331,6 +333,8 @@ if __name__ == '__main__':
                         help='How many branches to generate at each iteration.')
     parser.add_argument('-i', '--iter-cap', type=int, default=1000,
                         help='How many iterations to allow before failing.')
+    parser.add_argument('-sc', '--spin-cap', type=int, default=100,
+                        help='How many spin iterations to allow before failing.')
     parser.add_argument('-sm', '--step-multiplier', type=float, default=0.01,
                         help='How large of a step to allow when jittering.')
     parser.add_argument('-a', '--slope-error', type=float, default=0.05,
@@ -351,5 +355,5 @@ if __name__ == '__main__':
          slope_step=args.slope_step,
          sample_size=args.size, truncate_start=args.truncate,
          branching_factor=args.branch, iteration_cap=args.iter_cap,
-         step_multiplier=args.step_multiplier,
+         spin_cap=args.spin_cap, step_multiplier=args.step_multiplier,
          max_slope_error=args.slope_error, max_error=args.max_error)
