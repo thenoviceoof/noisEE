@@ -193,6 +193,7 @@ def parallel_hill_climb(data, target_slope, seed_params,
             minp_slope, target_slope, minp_error, max_error)
 
     iter_count = 0
+    local_pressure = 0
     while (minp_error > max_error or
            abs(minp_slope - target_slope) > max_slope_error):
         # Keep a lid on the iterations, detect when a target is impossible.
@@ -200,8 +201,9 @@ def parallel_hill_climb(data, target_slope, seed_params,
             raise Exception('Algorithm seems stuck, too many iterations?')
 
         # Make some parameters
+        pressure_multiplier = step_multiplier * (local_pressure + 1)
         jittered_params = [jitter_params(minp_params, minp_combined_error,
-                                         step_multiplier=step_multiplier)
+                                         step_multiplier=pressure_multiplier)
                            for i in range(branching_factor)]
 
         # Let the workers at it
@@ -231,6 +233,13 @@ def parallel_hill_climb(data, target_slope, seed_params,
 
         # Find the argmin
         minp_result = min(results, key=lambda r:r[3])
+
+        # Check if the result is stuck, increase the pressure
+        if minp_params == minp_result[0]:
+            local_pressure += 1
+        else:
+            local_pressure = 0
+
         minp_params, minp_slope, minp_error, minp_combined_error = minp_result
         iter_count += 1
 
