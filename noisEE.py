@@ -237,6 +237,10 @@ def parallel_hill_climb(data, target_slope, seed_params,
         if verbose == 1:
             print 'Itera[{:3}] S{:.3f} E{:.3f} CE{:2.3f}'.format(
                 iter_count, minp_slope, minp_error, minp_combined_error)
+
+            # Force write to file, if redirecting to a file
+            sys.stdout.flush()
+
     return minp_params
 
 ################################################################################
@@ -286,6 +290,9 @@ def main(wav_path, verbose=False,
         for j in range(len(filter_params)/2):
             print '\tb{i} = {c1} * b{i} + {c2} * w'.format(
                 i=j, c1=filter_params[2*j], c2=filter_params[2*j+1])
+
+        # Force write to file, if redirecting to a file
+        sys.stdout.flush()
 
     # Shut down workers
     for i in range(len(process_list)):
