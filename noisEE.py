@@ -123,13 +123,28 @@ def get_filter_slope(data, filter_params, truncate_start=0, sample_size=1024):
 ################################################################################
 # ML
 
-def jitter_params(parameters, parameters_error, step_multiplier=0.01):
-    '''
-    '''
+def jitter_params(parameters, parameters_error, step_multiplier=0.01,
+                  local_pressure=0):
+    # Make a copy of the params, to prevent clobbering
     jittered_params = copy.deepcopy(parameters)
-    error_step = parameters_error * step_multiplier
-    index = random.randint(0, len(jittered_params) - 1)
-    jittered_params[index] += error_step * (random.random() - 0.5)
+    # Figure how large the error step should be
+    pressure_multiplier = step_multiplier * (local_pressure + 1)
+    error_step = parameters_error * pressure_multiplier
+    # Choose how many params to change, depending on local pressure
+    # 0(1, 1/10, 1/100...) -> 100(1, 1/2, 1/4...) -> inf(1, 1, 1...)
+    falloff = 1/(8./900. * (local_pressure + 25./2.))
+    weights = [1./(falloff + 1.)**i for i in range(len(parameters))]
+    rand_weights = sum(weights) * random.random()
+    num_params = 0
+    for i in range(len(parameters)):
+        if rand_weights < sum(weights[:i + 1]):
+            num_params = i + 1
+            break
+    # Choose which indicies to change
+    indicies = random.sample(xrange(len(parameters)), num_params)
+    # Do a uniform change
+    for ind in indicies:
+        jittered_params[ind] += error_step * (random.random() - 0.5)
     return jittered_params
 
 def combine_error(target_slope, slope, error,
@@ -194,9 +209,9 @@ def parallel_hill_climb(data, target_slope, seed_params,
             raise Exception('Algorithm seems stuck, too many iterations?')
 
         # Make some parameters
-        pressure_multiplier = step_multiplier * (local_pressure + 1)
         jittered_params = [jitter_params(minp_params, minp_combined_error,
-                                         step_multiplier=pressure_multiplier)
+                                         step_multiplier=step_multiplier,
+                                         local_pressure=local_pressure)
                            for i in range(branching_factor)]
 
         # Let the workers at it
