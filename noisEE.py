@@ -22,14 +22,6 @@ except ImportError:
 
 SAMPLE_RATE = 44100
 
-WHITE_SLOPE = 0.0
-WHITE_FILTER = [
-    0, 1,
-    0, 0,
-    0, 0,
-    0, 0,
-]
-
 PINK_SLOPE = 10.0
 PINK_FILTER = [
     0.99765, 0.0990460,
@@ -256,7 +248,7 @@ def parallel_hill_climb(data, target_slope, seed_params,
 ################################################################################
 # main
 
-def main(wav_path, verbose=False,
+def main(wav_path, verbose=False, filter_size=4,
          white_slope=0.0, black_slope=10.0, slope_step=0.1,
          sample_size=1024, truncate_start=0,
          branching_factor=20, iteration_cap=1000, spin_cap=100,
@@ -277,7 +269,7 @@ def main(wav_path, verbose=False,
     for proc in process_list:
         proc.start()
 
-    filter_params = WHITE_FILTER
+    filter_params = [1.0 if i == 1 else 0.0 for i in range(2 * filter_size)]
 
     # Find the slopes we want
     assert white_slope < black_slope
@@ -318,6 +310,8 @@ if __name__ == '__main__':
                         help='Turn on verbose debug output.')
     parser.add_argument('-vv', action='store_true',
                         help='Turn on really verbose debug output.')
+    parser.add_argument('-f', '--filter-size', type=int, default=4,
+                        help='Number of state variables to use')
     parser.add_argument('-u', '--white-slope', type=float, default=0.0,
                         help='White noise falloff (slower falloff) db/oct')
     parser.add_argument('-d', '--black-slope', type=float, default=10.0,
@@ -350,7 +344,7 @@ if __name__ == '__main__':
     elif args.verbose:
         verbose = 1
 
-    main(args.wavpath, verbose=verbose,
+    main(args.wavpath, verbose=verbose, filter_size=args.filter_size,
          white_slope=args.white_slope, black_slope=args.black_slope,
          slope_step=args.slope_step,
          sample_size=args.size, truncate_start=args.truncate,
