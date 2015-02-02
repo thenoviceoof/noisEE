@@ -47,7 +47,7 @@ def read_wav(path):
 
     return list(data)
 
-def log_fft(wav_data):
+def lg_fft(wav_data):
     '''
     Returns the FFT data, scaled as if destined for a log-log graph
     '''
@@ -96,7 +96,7 @@ def get_filter_slope(data, filter_params, truncate_start=0, sample_size=1024):
             for i in range(len(data)/sample_size)]
 
     # Apply the fft to each bucket, and average the frequency spectrums
-    spectra = [fft_db(wd) for wd in data]
+    spectra = [lg_fft(wd) for wd in data]
     spectra_avg = sum(spectra) / len(spectra)
 
     # Generate the log frequency (y) for the spectra data (x),
