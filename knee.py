@@ -33,7 +33,7 @@ def test1(wav_data, white=0.1, steps=20):
             yms.append(-100)
     return xms, yms
 
-def main(paths, steps=10):
+def main(paths, steps=10, degree=4):
     wav_data = [read_wav(path) for path in paths]
 
     ymss = []
@@ -50,7 +50,7 @@ def main(paths, steps=10):
 
     # Poly fit!
     yms = [sum(ys)/len(wav_data) for ys in numpy.transpose(ymss)]
-    res = numpy.polyfit(xms, yms, 4, full=True)
+    res = numpy.polyfit(xms, yms, degree, full=True)
     coeffs, residuals, rank, sing, rcond = res
     print 'Residuals\t%f' % residuals[0]
     print 'Rank\t%d' % rank
@@ -68,7 +68,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('paths', nargs='+')
     parser.add_argument('-s', type=int, default=10)
+    parser.add_argument('-d', type=int, default=4)
 
     args = parser.parse_args()
 
-    main(args.paths, steps=args.s)
+    main(args.paths, steps=args.s, degree=args.d)
