@@ -36,20 +36,29 @@ def test1(wav_data, white=0.1, steps=20):
 def main(paths, steps=10):
     wav_data = [read_wav(path) for path in paths]
 
-    xms, yms = test1(wav_data, white=0.2, steps=20)
-    yms = [(y/22050) for y in yms]
+    ymss = []
+    for wd in wav_data:
+        # It turns out white doesn't affect the knee at all
+        xms, yms = test1(wd, white=0.2, steps=20)
+        yms = [(y/22050) for y in yms]
+        ymss.append(yms)
 
+    # Make it look like the X is backwards
     xms = [1.-x for x in xms]
-    plt.plot(xms, yms)
+    for yms in ymss:
+        plt.plot(xms, yms)
+
+    # Poly fit!
+    yms = [sum(ys)/len(wav_data) for ys in numpy.transpose(ymss)]
     res = numpy.polyfit(xms, yms, 4, full=True)
     coeffs, residuals, rank, sing, rcond = res
     print 'Residuals\t%f' % residuals[0]
     print 'Rank\t%d' % rank
     print 'Rcond\t%f' % rcond
-    #print residuals, rank, sing, rcond
+
     coeffs = list(reversed(coeffs))
     print coeffs
-    # yms = [0.2*(1-x)+0.8*(1-x)**4 for x in xms]
+
     yms = [sum(coeffs[i] * x**i for i in range(len(coeffs))) for x in xms]
     plt.plot(xms, yms)
 
