@@ -29,32 +29,71 @@ def print_polyfit(xms, yms, degree):
     coeffs = list(reversed(coeffs))
     print coeffs
 
-def main(path, steps=10, degree=4, const_white=False, const_accum=False,
-         flip_axis=False, print_poly=False):
+def main(path, steps=10, degree=4, print_poly=False):
     wav_data = read_wav(path)
 
     white_data = get_lg_data(wav_data, [0.0, 1.0], sample_size=1024)
     white_level = sum(white_data[1])/len(white_data[0])
 
-    ymss = []
-    for i in (range(1) if const_white else range(steps)):
-        if const_white:
-            stop = 0.5
-        else:
-            stop = float(i+1)/steps
-        xms, yms = test1(wav_data, white=stop, steps=steps)
-        yms = [y - white_level for y in yms]
-        ymss.append(yms)
+    # X - white param, Y - state param, Z - steady state db
+    xms = [float(i+1)/steps for i in range(steps)]
+    ps = []
+    for x in xms:
+        yms, zms = test1(wav_data, white=x, steps=steps)
+        zms = [z - white_level for z in zms]
+        for y,z in zip(yms, zms):
+            ps.append((x, y, z))
 
-    if flip_axis:
-        ymss = numpy.transpose(ymss)
+    ux = sorted(list(set([x for x,y,z in ps])))
+    uy = sorted(list(set([y for x,y,z in ps])))
 
+    # Find the polynomials that fit both X/Z and Y/Z graphs
     if print_poly:
-        for yms in ymss:
-            print_polyfit(xms, yms, degree)
+        print 'White vs DB'
+        xms = [x for x,y,z in ps if y == uy[len(uy)/2]]
+        zms = [z for x,y,z in ps if y == uy[len(uy)/2]]
+        print ''
+        print '@ degree %d' % (degree - 1)
+        print_polyfit(xms, zms, degree - 1)
+        print ''
+        print '@ degree %d' % degree
+        print_polyfit(xms, zms, degree)
+        print ''
+        print '@ degree %d' % (degree + 1)
+        print_polyfit(xms, zms, degree + 1)
+        print ''
+        print '@ degree %d' % (degree + 2)
+        print_polyfit(xms, zms, degree + 2)
 
-    for yms in ymss:
-        plt.plot(xms, yms)
+        print '=' * 80
+        print 'State vs DB'
+        yms = [y for x,y,z in ps if x == ux[len(ux)/2]]
+        zms = [z for x,y,z in ps if x == ux[len(ux)/2]]
+        print ''
+        print '@ degree %d' % (degree - 1)
+        print_polyfit(yms, zms, degree - 1)
+        print ''
+        print '@ degree %d' % degree
+        print_polyfit(yms, zms, degree)
+        print ''
+        print '@ degree %d' % (degree + 1)
+        print_polyfit(yms, zms, degree + 1)
+        print ''
+        print '@ degree %d' % (degree + 2)
+        print_polyfit(yms, zms, degree + 2)
+
+    # Subplot X/Z and Y/Z
+    plt.subplot(2, 1, 1)
+    for cy in uy:
+        xms = [x for x,y,z in ps if y == cy]
+        zms = [z for x,y,z in ps if y == cy]
+        plt.plot(xms, zms)
+
+    plt.subplot(2, 1, 2)
+    for cx in ux:
+        yms = [y for x,y,z in ps if x == cx]
+        zms = [z for x,y,z in ps if x == cx]
+        plt.plot(yms, zms)
 
     plt.show()
 
@@ -62,14 +101,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('path')
     parser.add_argument('-s', '--steps', type=int, default=10)
-    parser.add_argument('-w', '--const-white', action='store_true')
-    parser.add_argument('-a', '--const-accum', action='store_true')
-    parser.add_argument('-d', '--degree', type=int, default=4)
-    parser.add_argument('-x', '--white-x-axis', action='store_true')
+    parser.add_argument('-d', '--degree', type=int, default=3)
     parser.add_argument('-p', '--print', action='store_true', dest='pprint')
 
     args = parser.parse_args()
 
     main(args.path, steps=args.steps, degree=args.degree,
-         const_white=args.const_white, const_accum=args.const_accum,
-         flip_axis=args.white_x_axis, print_poly=args.pprint)
+         print_poly=args.pprint)
