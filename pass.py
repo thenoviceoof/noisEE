@@ -56,9 +56,9 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--steps', type=int, default=10)
     parser.add_argument('-w', '--const-white', action='store_true')
     parser.add_argument('-a', '--const-accum', action='store_true')
-    parser.add_argument('-d', type=int, default=4)
+    parser.add_argument('-d', '--degree', type=int, default=4)
 
     args = parser.parse_args()
 
-    main(args.path, steps=args.steps, degree=args.d,
+    main(args.path, steps=args.steps, degree=args.degree,
          const_white=args.const_white, const_accum=args.const_accum)
