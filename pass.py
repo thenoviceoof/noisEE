@@ -29,7 +29,8 @@ def print_polyfit(xms, yms, degree):
     coeffs = list(reversed(coeffs))
     print coeffs
 
-def main(path, steps=10, degree=4, const_white=False, const_accum=False):
+def main(path, steps=10, degree=4, const_white=False, const_accum=False,
+         flip_axis=False, print_poly=False):
     wav_data = read_wav(path)
 
     white_data = get_lg_data(wav_data, [0.0, 1.0], sample_size=1024)
@@ -45,6 +46,13 @@ def main(path, steps=10, degree=4, const_white=False, const_accum=False):
         yms = [y - white_level for y in yms]
         ymss.append(yms)
 
+    if flip_axis:
+        ymss = numpy.transpose(ymss)
+
+    if print_poly:
+        for yms in ymss:
+            print_polyfit(xms, yms, degree)
+
     for yms in ymss:
         plt.plot(xms, yms)
 
@@ -57,8 +65,11 @@ if __name__ == '__main__':
     parser.add_argument('-w', '--const-white', action='store_true')
     parser.add_argument('-a', '--const-accum', action='store_true')
     parser.add_argument('-d', '--degree', type=int, default=4)
+    parser.add_argument('-x', '--white-x-axis', action='store_true')
+    parser.add_argument('-p', '--print', action='store_true', dest='pprint')
 
     args = parser.parse_args()
 
     main(args.path, steps=args.steps, degree=args.degree,
-         const_white=args.const_white, const_accum=args.const_accum)
+         const_white=args.const_white, const_accum=args.const_accum,
+         flip_axis=args.white_x_axis, print_poly=args.pprint)
