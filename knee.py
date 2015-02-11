@@ -48,17 +48,26 @@ def main(path, steps=10, degree=4):
     plt.plot(xms, yms)
 
     # Poly fit!
-    res = numpy.polyfit(xms, yms, degree, full=True)
-    coeffs, residuals, rank, sing, rcond = res
-    print 'Residuals\t%f' % residuals[0]
-    print 'Rank\t%d' % rank
-    print 'Rcond\t%f' % rcond
+    def poly_fit(xms, yms, degree):
+        print '=' * 80
+        print 'Degree %d' % degree
+        res = numpy.polyfit(xms, yms, degree, full=True)
+        coeffs, residuals, rank, sing, rcond = res
+        print 'Residuals\t%f' % residuals[0]
+        print 'Rank\t%d' % rank
+        print 'Rcond\t%f' % rcond
 
-    coeffs = list(reversed(coeffs))
-    print coeffs
+        coeffs = list(reversed(coeffs))
+        print coeffs
 
-    yms = [sum(coeffs[i] * x**i for i in range(len(coeffs))) for x in xms]
-    plt.plot(xms, yms)
+        sim_yms = [sum(coeffs[i] * x**i for i in range(len(coeffs)))
+                   for x in xms]
+        plt.plot(xms, sim_yms)
+
+    poly_fit(xms, yms, degree - 1)
+    poly_fit(xms, yms, degree)
+    poly_fit(xms, yms, degree + 1)
+    poly_fit(xms, yms, degree + 2)
 
     plt.show()
 
