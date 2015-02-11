@@ -29,6 +29,13 @@ def user_assert(condition, message):
         print 'ERROR: %s' % message
         sys.exit(1)
 
+def smooth(data, width=2):
+    new_data = []
+    for i in range(len(data)):
+        local_data = data[max(i-width,0):(i+1)+width]
+        new_data.append(sum(local_data) / len(local_data))
+    return new_data
+
 ################################################################################
 # audio manipulation
 
