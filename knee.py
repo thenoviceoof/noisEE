@@ -16,6 +16,9 @@ def test1(wav_data, white=0.1, steps=20):
     xs = fil_data[0][0]
     fil_data = [fd[1] for fd in fil_data]
 
+    # Smooth out the data to get better knee calculations
+    fil_data = [smooth(fd) for fd in fil_data]
+
     maxes = [max(fd) for fd in fil_data]
     xms = []; yms = []
     for j, dd in enumerate(zip(maxes, fil_data)):
@@ -30,26 +33,21 @@ def test1(wav_data, white=0.1, steps=20):
                 break
         else:
             xms.append(fils[j][0])
-            yms.append(-100)
+            yms.append(SAMPLE_RATE/2)
     return xms, yms
 
-def main(paths, steps=10, degree=4):
-    wav_data = [read_wav(path) for path in paths]
+def main(path, steps=10, degree=4):
+    wav_data = read_wav(path)
 
-    ymss = []
-    for wd in wav_data:
-        # It turns out white doesn't affect the knee at all
-        xms, yms = test1(wd, white=0.2, steps=20)
-        yms = [(y/22050) for y in yms]
-        ymss.append(yms)
+    # It turns out white doesn't affect the knee at all
+    xms, yms = test1(wav_data, white=0.2, steps=20)
+    yms = [(y/22050) for y in yms]
 
     # Make it look like the X is backwards
     xms = [1.-x for x in xms]
-    for yms in ymss:
-        plt.plot(xms, yms)
+    plt.plot(xms, yms)
 
     # Poly fit!
-    yms = [sum(ys)/len(wav_data) for ys in numpy.transpose(ymss)]
     res = numpy.polyfit(xms, yms, degree, full=True)
     coeffs, residuals, rank, sing, rcond = res
     print 'Residuals\t%f' % residuals[0]
@@ -66,10 +64,10 @@ def main(paths, steps=10, degree=4):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('paths', nargs='+')
+    parser.add_argument('path')
     parser.add_argument('-s', type=int, default=10)
     parser.add_argument('-d', type=int, default=4)
 
     args = parser.parse_args()
 
-    main(args.paths, steps=args.s, degree=args.d)
+    main(args.path, steps=args.s, degree=args.d)
