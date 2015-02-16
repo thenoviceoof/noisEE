@@ -29,6 +29,13 @@ def print_polyfit(xms, yms, degree):
     coeffs = list(reversed(coeffs))
     print coeffs
 
+    plt.plot(xms, yms)
+    genx = [i/1024. for i in range(1024 + 1)]
+    geny = [sum([coeffs[i] * x**i for i in range(degree+1)]) for x in genx]
+    plt.plot(genx, geny)
+    plt.title('Degree %d' % degree)
+    plt.show()
+
 def main(path, steps=10, degree=4, print_poly=False, print_log_slope=False):
     wav_data = read_wav(path)
 
@@ -62,23 +69,6 @@ def main(path, steps=10, degree=4, print_poly=False, print_log_slope=False):
 
     # Find the polynomials that fit both X/Z and Y/Z graphs
     if print_poly:
-        print '=' * 80
-        print 'White vs DB'
-        xms = [x for x,y,z in ps if y == 0]
-        zms = [z for x,y,z in ps if y == 0]
-        print ''
-        print '@ degree %d' % (degree - 1)
-        print_polyfit(xms, zms, degree - 1)
-        print ''
-        print '@ degree %d' % degree
-        print_polyfit(xms, zms, degree)
-        print ''
-        print '@ degree %d' % (degree + 1)
-        print_polyfit(xms, zms, degree + 1)
-        print ''
-        print '@ degree %d' % (degree + 2)
-        print_polyfit(xms, zms, degree + 2)
-
         print '=' * 80
         print 'State vs DB'
         yms = [y for x,y,z in ps if x == ux[len(ux)/2]]
