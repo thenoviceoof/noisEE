@@ -71,19 +71,20 @@ def main(path, steps=10, degree=4, print_poly=False, print_log_slope=False):
     if print_poly:
         print '=' * 80
         print 'State vs DB'
-        yms = [y for x,y,z in ps if x == ux[len(ux)/2]]
-        zms = [z for x,y,z in ps if x == ux[len(ux)/2]]
+        cx = ux[len(ux)/2]
+        yms = [y for x,y,z in ps if x == cx]
+        zms = [z for x,y,z in ps if x == cx]
         print ''
-        print '@ degree %d' % (degree - 1)
+        print '@ degree %d @ x == %f' % (degree - 1, cx)
         print_polyfit(yms, zms, degree - 1)
         print ''
-        print '@ degree %d' % degree
+        print '@ degree %d @ x == %f' % (degree, cx)
         print_polyfit(yms, zms, degree)
         print ''
-        print '@ degree %d' % (degree + 1)
+        print '@ degree %d @ x == %f' % (degree + 1, cx)
         print_polyfit(yms, zms, degree + 1)
         print ''
-        print '@ degree %d' % (degree + 2)
+        print '@ degree %d @ x == %f' % (degree + 2, cx)
         print_polyfit(yms, zms, degree + 2)
 
     # Subplot X/Z and Y/Z
