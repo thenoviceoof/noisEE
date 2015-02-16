@@ -29,14 +29,15 @@ def print_polyfit(xms, yms, degree):
     coeffs = list(reversed(coeffs))
     print coeffs
 
-def main(path, steps=10, degree=4, print_poly=False):
+def main(path, steps=10, degree=4, print_poly=False, print_log_slope=False):
     wav_data = read_wav(path)
 
     white_data = get_lg_data(wav_data, [0.0, 1.0], sample_size=1024)
     white_level = sum(white_data[1])/len(white_data[0])
 
     # X - white param, Y - state param, Z - steady state db
-    xms = [float(i+1)/steps for i in range(steps)]
+    #xms = [float(i+1)/steps for i in range(steps)]
+    xms = [1./2.**i for i in range(steps)]
     ps = []
     for x in xms:
         yms, zms = test1(wav_data, white=x, steps=steps)
@@ -47,11 +48,24 @@ def main(path, steps=10, degree=4, print_poly=False):
     ux = sorted(list(set([x for x,y,z in ps])))
     uy = sorted(list(set([y for x,y,z in ps])))
 
+    if print_log_slope:
+        print '=' * 80
+        print 'log slope (lg2)'
+        xms = [x for x,y,z in ps if y == 0]
+        zms = [z for x,y,z in ps if y == 0]
+        # normalize
+        mz = max(zms)
+        zms = [z - mz for z in zms]
+        ams = [z/math.log(x, 2) for x,z in zip(xms, zms) if x != 1.0]
+        print ams
+        print sum(ams)/len(ams)
+
     # Find the polynomials that fit both X/Z and Y/Z graphs
     if print_poly:
+        print '=' * 80
         print 'White vs DB'
-        xms = [x for x,y,z in ps if y == uy[len(uy)/2]]
-        zms = [z for x,y,z in ps if y == uy[len(uy)/2]]
+        xms = [x for x,y,z in ps if y == 0]
+        zms = [z for x,y,z in ps if y == 0]
         print ''
         print '@ degree %d' % (degree - 1)
         print_polyfit(xms, zms, degree - 1)
@@ -87,13 +101,15 @@ def main(path, steps=10, degree=4, print_poly=False):
     for cy in uy:
         xms = [x for x,y,z in ps if y == cy]
         zms = [z for x,y,z in ps if y == cy]
-        plt.plot(xms, zms)
+        plt.plot(xms, zms, label='%f' % cy)
+    plt.legend()
 
     plt.subplot(2, 1, 2)
     for cx in ux:
         yms = [y for x,y,z in ps if x == cx]
         zms = [z for x,y,z in ps if x == cx]
-        plt.plot(yms, zms)
+        plt.plot(yms, zms, label='%f' % cx)
+    plt.legend()
 
     plt.show()
 
@@ -103,8 +119,9 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--steps', type=int, default=10)
     parser.add_argument('-d', '--degree', type=int, default=3)
     parser.add_argument('-p', '--print', action='store_true', dest='pprint')
+    parser.add_argument('-l', '--print-log-slope', action='store_true')
 
     args = parser.parse_args()
 
     main(args.path, steps=args.steps, degree=args.degree,
-         print_poly=args.pprint)
+         print_poly=args.pprint, print_log_slope=args.print_log_slope)
