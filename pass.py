@@ -16,6 +16,8 @@ def test1(wav_data, white=0.1, steps=20):
     xs = fil_data[0][0]
     fil_data = [fd[1] for fd in fil_data]
 
+    fil_data = [smooth(fd) for fd in fil_data]
+
     maxes = [max(fd) for fd in fil_data]
     return (stops, maxes)
 
