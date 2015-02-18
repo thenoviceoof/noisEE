@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from libnoisEE import *
 
 def test1(wav_data, white=0.1, steps=20):
-    stops = [float(i)/steps for i in range(steps)]
+    stops = [(float(i)/steps)**2 for i in range(steps)]
     fils = [[1-s, white] for s in stops]
 
     fil_data = [get_lg_data(wav_data, fil, sample_size=1024) for fil in fils]
@@ -45,7 +45,6 @@ def main(path, steps=10, degree=4):
 
     # Make it look like the X is backwards
     xms = [1.-x for x in xms]
-    plt.plot(xms, yms)
 
     # Poly fit!
     def poly_fit(xms, yms, degree):
@@ -60,16 +59,19 @@ def main(path, steps=10, degree=4):
         coeffs = list(reversed(coeffs))
         print coeffs
 
+        sim_xms = [float(j)/1024. for j in range(1024 + 1)]
         sim_yms = [sum(coeffs[i] * x**i for i in range(len(coeffs)))
-                   for x in xms]
-        plt.plot(xms, sim_yms)
+                   for x in sim_xms]
+        plt.plot(xms, yms, label='data')
+        plt.plot(sim_xms, sim_yms, label='fit %d' % degree)
+        plt.legend()
+        plt.show()
 
     poly_fit(xms, yms, degree - 1)
     poly_fit(xms, yms, degree)
     poly_fit(xms, yms, degree + 1)
     poly_fit(xms, yms, degree + 2)
 
-    plt.show()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
