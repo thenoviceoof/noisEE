@@ -41,7 +41,8 @@ def print_polyfit(xms, yms, degree):
 def main(path, steps=10, degree=4, print_poly=False, print_log_slope=False):
     wav_data = read_wav(path)
 
-    white_data = get_lg_data(wav_data, [0.0, 1.0], sample_size=1024)
+    white_data = get_lg_data(wav_data, [0.0, 1.0], truncate_start=1024 * 10,
+                             sample_size=1024)
     white_level = sum(white_data[1])/len(white_data[0])
 
     # X - white param, Y - state param, Z - steady state db
