@@ -12,7 +12,7 @@ def test1(wav_data, white=0.1, steps=20):
     stops = [(float(i)/steps)**2 for i in range(steps)]
     fils = [[1-s, white] for s in stops]
 
-    fil_data = [get_lg_data(wav_data, fil, sample_size=1024) for fil in fils]
+    fil_data = [get_lg_data(wav_data, fil, sample_size=4196) for fil in fils]
     xs = fil_data[0][0]
     fil_data = [fd[1] for fd in fil_data]
 
@@ -40,11 +40,16 @@ def main(path, steps=10, degree=4):
     wav_data = read_wav(path)
 
     # It turns out white doesn't affect the knee at all
-    xms, yms = test1(wav_data, white=0.2, steps=20)
+    xms, yms = test1(wav_data, white=0.2, steps=steps)
     yms = [(y/22050) for y in yms]
 
-    # Make it look like the X is backwards
-    xms = [1.-x for x in xms]
+    # Subtract out the obvious inverse component
+    in_yms = [(0.04 / x if x > 0.04 else 1.0) for x in xms]
+    syms = [y - iy for iy,y in zip(in_yms,yms)]
+
+    plt.plot(xms, yms)
+    plt.plot(xms, syms)
+    plt.show()
 
     # Poly fit!
     def poly_fit(xms, yms, degree):
@@ -67,10 +72,7 @@ def main(path, steps=10, degree=4):
         plt.legend()
         plt.show()
 
-    poly_fit(xms, yms, degree - 1)
-    poly_fit(xms, yms, degree)
-    poly_fit(xms, yms, degree + 1)
-    poly_fit(xms, yms, degree + 2)
+    poly_fit(xms[:-4], syms[:-4], degree)
 
 
 if __name__ == '__main__':

@@ -8,12 +8,11 @@ import math
 from libnoisEE import *
 
 def filter_characteristics(white, state):
-    rev_state = 1 - state
-    knee_frac = (0.00022856304700783622
-                 + 0.41420297628235303 * rev_state
-                 - 0.42118671936182317 * rev_state**2
-                 + 0.42118671936182317 * rev_state**3
-                 + 0.892743444761949 * rev_state**4)
+    # Don't allow infinite frequencies, that's silly
+    if state < 0.00001:
+        knee_frac = 1 / 0.00001
+    else:
+        knee_frac = 0.04 / state + 0.22326330618169832 - 0.26326330618169832 * state
     knee_freq = (SAMPLE_RATE/2) * knee_frac
     pass_band = (6.02059991328 * math.log(white, 2)
                  + 14.036948327785755 * state
