@@ -36,6 +36,15 @@ def smooth(data, width=2):
         new_data.append(sum(local_data) / len(local_data))
     return new_data
 
+def loess(xs, ys, width=1.0):
+    rys = []
+    for x in xs:
+        ds = [abs(x - lx) for lx in xs]
+        ws = [(width - d if width > d else 0.0) for d in ds]
+        poly = numpy.polyfit(xs, ys, 1, w=ws)
+        rys.append(numpy.polyval(poly, x))
+    return rys
+
 ################################################################################
 # audio manipulation
 

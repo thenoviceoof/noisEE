@@ -32,7 +32,7 @@ def main(path, white, state):
     plt.plot(freq, norm_spectra, label='Actual')
 
     # Smooth the actual
-    smooth_spectra = smooth(norm_spectra, width=200)
+    smooth_spectra = loess(lg_freq, norm_spectra, width=0.5)
     plt.plot(freq, smooth_spectra, label='Smooth Actual')
     
     plt.xscale('log')
