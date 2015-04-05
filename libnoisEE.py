@@ -150,9 +150,10 @@ def get_filter_slope(data, filter_params, truncate_start=0, sample_size=1024):
     slope, error = get_slope(lg_freq, spectra_avg)
     return slope, error
 
-def get_lg_data(data, filter_params, truncate_start=0, sample_size=1024):
+def get_lg_data(data, filter_params, truncate_start=0, sample_size=1024,
+                filter_fn=apply_filter):
     # Apply the filter
-    data = apply_filter(filter_params, data)
+    data = filter_fn(filter_params, data)
 
     # Throw data away from the beginning, for better filter data
     data = data[truncate_start:]

@@ -38,23 +38,22 @@ def apply_digital_filter(params, data, in_bits=12, out_bits=10, int_bits=16):
     assert len(prev_coeff) == len(mix_coeff)
     coeff_count = len(prev_coeff)
 
-    zero = to_fp([-1, 1], [-2**(int_bits-1)-1, 2**(int_bits-1)], 0.0)
+    zero = to_fp([-1, 1], [-2**(int_bits-1), 2**(int_bits-1)-1], 0.0)
     # convert coeffs to fixed point
-    prev_coeff = [to_fp([-1, 1], [-2**(int_bits-1)+1, 2**(int_bits-1)], p)
+    prev_coeff = [to_fp([-1, 1], [-2**(int_bits-1), 2**(int_bits-1)-1], p)
                   for p in prev_coeff]
-    mix_coeff = [to_fp([-1, 1], [-2**(int_bits-1)+1, 2**(int_bits-1)], p)
+    mix_coeff = [to_fp([-1, 1], [-2**(int_bits-1), 2**(int_bits-1)-1], p)
                  for p in mix_coeff]
 
     filter_state = [zero for i in range(coeff_count)]
     filtered_data = []
-    j = 0
     for d in data:
         filter_state = [prev_coeff[i]*filter_state[i] + mix_coeff[i]*d
                         for i in range(coeff_count)]
-        filter_state = [s >> int_bits for s in filter_state]
+        filter_state = [s >> (int_bits - 1) for s in filter_state]
         filter_out = sum(filter_state)
-        clamped_filter_out = max(min(filter_out, 2**(int_bits-1)),
-                                 -2**(int_bits-1)+1)
+        clamped_filter_out = max(min(filter_out, 2**(int_bits-1)-1),
+                                 -2**(int_bits-1))
         filtered_data.append(clamped_filter_out)
     return filtered_data
 
