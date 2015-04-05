@@ -3,11 +3,14 @@
 import argparse
 import array
 import copy
+import hashlib
 import math
 import multiprocessing
 import numpy
 from numpy import fft
 import random
+import os.path
+import pickle
 import sys
 import wave
 
@@ -44,6 +47,29 @@ def loess(xs, ys, width=1.0):
         poly = numpy.polyfit(xs, ys, 1, w=ws)
         rys.append(numpy.polyval(poly, x))
     return rys
+
+################################################################################
+# Nope, Chuck Testa
+
+class NCTLoadException(Exception):
+    pass
+
+def nct_name():
+    args = sorted(sys.argv)
+    arg_hash = hashlib.sha1(' '.join(args)).hexdigest()[:5]
+    filename = os.path.splitext(os.path.split(sys.argv[0])[1])[0]
+    return '.%s_%s.pickle' % (filename, arg_hash)
+
+def nct_load():
+    path = nct_name()
+    if os.path.exists(path):
+        return pickle.load(open(path))
+    else:
+        raise NCTLoadException
+
+def nct_dump(obj):
+    path = nct_name()
+    pickle.dump(obj, open(path, mode='wb'))
 
 ################################################################################
 # audio manipulation
