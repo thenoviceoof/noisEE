@@ -10,11 +10,11 @@ from characteristics import filter_characteristics
 from libnoisEE import *
 
 def ideal_filter(white, state, steps=1024, high_freq=SAMPLE_RATE/2):
-    print white, state
     knee_freq, pass_band = filter_characteristics(white, state)
+    pass_band += 1
     print knee_freq, pass_band
     stops = [float(high_freq) * (99.1/100)**i for i in range(steps)]
-    feed = [1/(s/knee_freq + 1) for s in stops]
+    feed = [1/((s/knee_freq)**2 + 1)**0.5 for s in stops]
     feedb = [pass_band + 20 * math.log(f, 10) for f in feed]
     return stops, feedb
 

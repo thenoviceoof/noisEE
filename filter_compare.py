@@ -29,11 +29,18 @@ def main(path, white, state):
                                    sample_size=window_size)
     freq = [10**f for f in lg_freq]
     norm_spectra = [s - white_level for s in spectra]
-    plt.plot(freq, norm_spectra, label='Actual')
+    plt.plot(freq, norm_spectra, label='Actual', alpha=0.5)
 
     # Smooth the actual
     smooth_spectra = loess(lg_freq, norm_spectra, width=0.5)
     plt.plot(freq, smooth_spectra, label='Smooth Actual')
+    m_s = max(smooth_spectra)
+    for x,s in reversed(zip(freq, smooth_spectra)):
+        if s > m_s - 3:
+            print m_s
+            print s
+            print x
+            break
     
     plt.xscale('log')
     plt.legend()
