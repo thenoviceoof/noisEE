@@ -45,16 +45,25 @@ def apply_digital_filter(params, data, in_bits=12, out_bits=10, int_bits=16):
     mix_coeff = [to_fp([-1, 1], [-2**(int_bits-1), 2**(int_bits-1)-1], p)
                  for p in mix_coeff]
 
+    intb = sum(1<<i for i in range(int_bits))
     filter_state = [zero for i in range(coeff_count)]
     filtered_data = []
     for d in data:
+        # zero out the necessary in bits
+        if in_bits < int_bits:
+            d = d & (~sum([1<<i for i in range(int_bits - in_bits)]))
         filter_state = [prev_coeff[i]*filter_state[i] + mix_coeff[i]*d
                         for i in range(coeff_count)]
         filter_state = [s >> (int_bits - 1) for s in filter_state]
+        # make sure only int_bits survive
+        filter_state = [s & intb if s > 0 else -((-s) & intb)
+                        for s in filter_state]
         filter_out = sum(filter_state)
-        clamped_filter_out = max(min(filter_out, 2**(int_bits-1)-1),
-                                 -2**(int_bits-1))
-        filtered_data.append(clamped_filter_out)
+        out = max(min(filter_out, 2**(int_bits-1)-1), -2**(int_bits-1))
+        # zero out the necessary out bits
+        if out_bits < int_bits:
+            out = out & (~sum([1<<i for i in range(int_bits - out_bits)]))
+        filtered_data.append(out)
     return filtered_data
 
 def write_wav(path, data):
