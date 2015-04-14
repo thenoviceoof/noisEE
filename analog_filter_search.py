@@ -34,9 +34,12 @@ def fit_filter_combine(params):
     err = error[0]**0.5
     m, b = fit
 
-    # if it doesn't keep the final knee at 0, toss it
-    if abs(m * lg_freq[0] + b) > 1:
-        err = 100
+    return m, b, err, lg_freq[0]
+
+def combine_errors(m, b, var_err, min_freq, slope):
+    org_err = abs(m * min_freq + b)
+    slp_err = abs(m - slope)
+    err = 5 * var_err + org_err + slp_err
     return err
 
 def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
@@ -53,25 +56,28 @@ def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
     assert slope_end < slope_start
     assert slope_step < 0
     # For each slope...
-    slope_steps = int((slope_end - slope_start)/slope_step)
-    for slope in [0.0]:
-    #for slope in [slope_step * i for i in range(slope_steps)]: !!!
+    slope = slope_start
+    while slope >= slope_end:
         best_params = params
-        best_fit = fit_filter_combine(params)
+        m, b, var_err, min_freq = fit_filter_combine(params)
+        best_err = combine_errors(m, b, var_err, min_freq, slope)
         # Tweak the passbands
-        while best_fit > 0.5:
+        while best_err > 2:
             for j in range(20):
                 jit_params = [[knee, band + 0.5 * random.random()]
                               for knee,band in best_params]
-                # filter/combine
-                fit = fit_filter_combine(jit_params)
+                # apply filters/combine filter outputs
+                m, b, var_err, min_freq = fit_filter_combine(jit_params)
+                # combine all error sources
+                err = combine_errors(m, b, var_err, min_freq, slope)
                 # Fit each, use the best fit
-                if fit > best_fit:
-                    best_fit = fit
+                if err < best_err:
+                    best_err = err
                     best_params = jit_params
         params = best_params
         print params
-        print best_fit
+        print best_err
+        slope += slope_step
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
