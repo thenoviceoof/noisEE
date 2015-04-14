@@ -39,7 +39,8 @@ def fit_filter_combine(params):
 def combine_errors(m, b, var_err, min_freq, slope):
     org_err = abs(m * min_freq + b)
     slp_err = abs(m - slope)
-    err = 5 * var_err + org_err + slp_err
+    #  1 / 1 / 10 bc fine grained slope
+    err = 1 * var_err + 1 * org_err + 100 * slp_err
     return err
 
 def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
@@ -50,30 +51,48 @@ def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
         knees.append(4 * SAMPLE_RATE)
 
     # init the filters to super soft, except for white
-    params = [[knee, -100] for knee in knees]
-    params[-1][1] = 0
+    params = [[knee, -100.0] for knee in knees]
+    params[-1][1] = 0.0
     # make sure the slope steps and start/end agree
     assert slope_end < slope_start
     assert slope_step < 0
     # For each slope...
     slope = slope_start
     while slope >= slope_end:
+        print '=' * 80
+        print 'Slope target: {:.5}'.format(slope)
         best_params = params
         m, b, var_err, min_freq = fit_filter_combine(params)
         best_err = combine_errors(m, b, var_err, min_freq, slope)
+        best_m, best_b = m, b
         # Tweak the passbands
+        itr_count = 0
         while best_err > 2:
             for j in range(20):
-                jit_params = [[knee, band + 0.5 * random.random()]
-                              for knee,band in best_params]
+                jit_params = copy.deepcopy(best_params)
+                jit_index = random.sample(xrange(len(best_params)), 1)[0]
+                jit_params[jit_index][1] += 0.05 * best_err * random.random()
                 # apply filters/combine filter outputs
                 m, b, var_err, min_freq = fit_filter_combine(jit_params)
                 # combine all error sources
                 err = combine_errors(m, b, var_err, min_freq, slope)
                 # Fit each, use the best fit
                 if err < best_err:
+                    best_m, best_b = m, b
                     best_err = err
                     best_params = jit_params
+            # Print best guess
+            sys.stdout.write('\r' + (' ' * 80))
+            param_str = ','.join(["{:.3}".format(p) for _,p in best_params])
+            out_str = "\r[{:5}] Err {:.5} Param {} m/b {:.3}/{:.3}".format(
+                itr_count + 1, best_err, param_str, best_m, best_b)
+            sys.stdout.write(out_str)
+            sys.stdout.flush()
+            itr_count += 1
+            if itr_count % 100 == 0:
+                print ""
+        if itr_count:
+            print ""
         params = best_params
         print params
         print best_err
