@@ -44,6 +44,19 @@ def combine_errors(m, b, var_err, min_freq, slope):
     return err
 
 def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
+    # grab any previous writes
+    try:
+        data_file = open('analog_characteristic.log')
+        data = pickle.load(data_file)
+        data_file.close()
+    except IOError:
+        # for accumulating data into (slope, params)
+        data = {}
+
+    log_file = open('analog_characteristic.log', mode='w')
+    log_file.write(pickle.dumps(data))
+    log_file.flush()
+
     # make sure knees are smallest->largest
     knees = sorted(knees)
     # make sure there's a "white noise" source
@@ -59,6 +72,12 @@ def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
     # For each slope...
     slope = slope_start
     while slope >= slope_end:
+        # skip if we've already calculated
+        if slope in data:
+            slope += slope_step
+            params = [p for _,p in data[slope]]
+            continue
+
         print '=' * 80
         print 'Slope target: {:.5}'.format(slope)
         best_params = params
@@ -96,6 +115,11 @@ def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
         params = best_params
         print params
         print best_err
+        # Accumulate params, write out
+        data[slope] = list(zip(knees, params))
+        log_file.seek(0)
+        log_file.write(pickle.dumps(data))
+        log_file.flush()
         slope += slope_step
 
 if __name__ == '__main__':
