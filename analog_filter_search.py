@@ -43,6 +43,46 @@ def combine_errors(m, b, var_err, min_freq, slope):
     err = 1 * var_err + 1 * org_err + 100 * slp_err
     return err
 
+def find_passbands(slope, params):
+    best_params = params
+    m, b, var_err, min_freq = fit_filter_combine(params)
+    best_err = combine_errors(m, b, var_err, min_freq, slope)
+    best_m, best_b = m, b
+
+    itr_count = 0
+    pressure, pressurep = 0, False
+    # Keep on looking while we don't have the best fit
+    while ((best_err > 2 or pressure < 10) and
+           not (itr_count > 1000 and best_err < 5) and
+           not (itr_count > 9998)):
+        for j in range(20):
+            # Tweak the passbands
+            jit_params = copy.deepcopy(best_params)
+            jit_index = random.sample(xrange(len(best_params)), 1)[0]
+            jit_params[jit_index][1] += \
+                (0.05 * best_err * (random.random() - 0.5) +
+                 0.01 * pressure)
+            # apply filters/combine filter outputs
+            m, b, var_err, min_freq = fit_filter_combine(jit_params)
+            # combine all error sources
+            err = combine_errors(m, b, var_err, min_freq, slope)
+            # Fit each, use the best fit
+            if err < best_err:
+                best_m, best_b = m, b
+                best_err = err
+                best_params = jit_params
+                pressurep = True
+        itr_count += 1
+        # Pressure the optimizer / check if this is the best outcome
+        if pressurep:
+            pressure += 1
+            pressurep = False
+        else:
+            pressure = 0
+        # yield, to allow the main loop to output things
+        yield best_params, best_err, best_m, best_b, itr_count
+    yield best_params, best_err, best_m, best_b, itr_count
+
 def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
     # grab any previous writes
     try:
@@ -80,57 +120,25 @@ def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
 
         print '=' * 80
         print 'Slope target: {:.5}'.format(slope)
-        best_params = params
-        m, b, var_err, min_freq = fit_filter_combine(params)
-        best_err = combine_errors(m, b, var_err, min_freq, slope)
-        best_m, best_b = m, b
 
-        itr_count = 0
-        pressure, pressurep = 0, False
-        # Keep on looking while we don't have the best fit
-        while ((best_err > 2 or pressure < 10) and
-               not (itr_count > 1000 and best_err < 5) and
-               not (itr_count > 9998)):
-            for j in range(20):
-                # Tweak the passbands
-                jit_params = copy.deepcopy(best_params)
-                jit_index = random.sample(xrange(len(best_params)), 1)[0]
-                jit_params[jit_index][1] += \
-                    (0.05 * best_err * (random.random() - 0.5) +
-                     0.01 * pressure)
-                # apply filters/combine filter outputs
-                m, b, var_err, min_freq = fit_filter_combine(jit_params)
-                # combine all error sources
-                err = combine_errors(m, b, var_err, min_freq, slope)
-                # Fit each, use the best fit
-                if err < best_err:
-                    best_m, best_b = m, b
-                    best_err = err
-                    best_params = jit_params
-                    pressurep = True
+        passband_generator = find_passbands(slope, params)
+        for params, err, m, b, itr_count in passband_generator:
             # Print best guess
             sys.stdout.write('\r' + (' ' * 82))
-            param_str = ','.join(["{:.3}".format(p) for _,p in best_params])
+            param_str = ','.join(["{:.3}".format(p) for _,p in params])
             out_str = "\r[{:4}] Err {:.5} Param {} m/b {:.3}/{:.3}".format(
-                itr_count + 1, best_err, param_str, best_m, best_b)
+                itr_count + 1, err, param_str, m, b)
             sys.stdout.write(out_str)
             sys.stdout.flush()
             # Save the outputs for stdout every once in a while
             itr_count += 1
             if itr_count % 100 == 0:
                 print ""
-            # Pressure the optimizer / check if this is the best outcome
-            if pressurep:
-                pressure += 1
-                pressurep = False
-            else:
-                pressure = 0
-        # Print the best param/final error
-        if itr_count:
+        else:
             print ""
-        params = best_params
+        # Print the best param/final error
         print params
-        print best_err
+        print err
         # Accumulate params, write out
         data[slope] = list(zip(knees, params))
         log_file.seek(0)
