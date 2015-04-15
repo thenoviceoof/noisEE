@@ -86,12 +86,18 @@ def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
         best_m, best_b = m, b
 
         itr_count = 0
-        while best_err > 2:
+        pressure, pressurep = 0, False
+        # Keep on looking while we don't have the best fit
+        while ((best_err > 2 or pressure < 10) and
+               not (itr_count > 1000 and best_err < 5) and
+               not (itr_count > 9998)):
             for j in range(20):
                 # Tweak the passbands
                 jit_params = copy.deepcopy(best_params)
                 jit_index = random.sample(xrange(len(best_params)), 1)[0]
-                jit_params[jit_index][1] += 0.05 * best_err * random.random()
+                jit_params[jit_index][1] += \
+                    (0.05 * best_err * (random.random() - 0.5) +
+                     0.01 * pressure)
                 # apply filters/combine filter outputs
                 m, b, var_err, min_freq = fit_filter_combine(jit_params)
                 # combine all error sources
@@ -101,6 +107,7 @@ def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
                     best_m, best_b = m, b
                     best_err = err
                     best_params = jit_params
+                    pressurep = True
             # Print best guess
             sys.stdout.write('\r' + (' ' * 82))
             param_str = ','.join(["{:.3}".format(p) for _,p in best_params])
@@ -112,6 +119,12 @@ def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
             itr_count += 1
             if itr_count % 100 == 0:
                 print ""
+            # Pressure the optimizer / check if this is the best outcome
+            if pressurep:
+                pressure += 1
+                pressurep = False
+            else:
+                pressure = 0
         # Print the best param/final error
         if itr_count:
             print ""
