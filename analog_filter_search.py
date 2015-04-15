@@ -84,10 +84,11 @@ def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
         m, b, var_err, min_freq = fit_filter_combine(params)
         best_err = combine_errors(m, b, var_err, min_freq, slope)
         best_m, best_b = m, b
-        # Tweak the passbands
+
         itr_count = 0
         while best_err > 2:
             for j in range(20):
+                # Tweak the passbands
                 jit_params = copy.deepcopy(best_params)
                 jit_index = random.sample(xrange(len(best_params)), 1)[0]
                 jit_params[jit_index][1] += 0.05 * best_err * random.random()
@@ -101,15 +102,17 @@ def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
                     best_err = err
                     best_params = jit_params
             # Print best guess
-            sys.stdout.write('\r' + (' ' * 80))
+            sys.stdout.write('\r' + (' ' * 82))
             param_str = ','.join(["{:.3}".format(p) for _,p in best_params])
-            out_str = "\r[{:5}] Err {:.5} Param {} m/b {:.3}/{:.3}".format(
+            out_str = "\r[{:4}] Err {:.5} Param {} m/b {:.3}/{:.3}".format(
                 itr_count + 1, best_err, param_str, best_m, best_b)
             sys.stdout.write(out_str)
             sys.stdout.flush()
+            # Save the outputs for stdout every once in a while
             itr_count += 1
             if itr_count % 100 == 0:
                 print ""
+        # Print the best param/final error
         if itr_count:
             print ""
         params = best_params
