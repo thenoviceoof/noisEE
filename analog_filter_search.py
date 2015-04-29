@@ -127,8 +127,8 @@ def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
     while slope >= slope_end:
         # skip if we've already calculated
         if slope in data:
-            slope += slope_step
             params = [p for _,p in data[slope]]
+            slope += slope_step
             continue
 
         print '=' * 80
