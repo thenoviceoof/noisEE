@@ -73,8 +73,7 @@ def find_passbands(slope, params):
             jit_params = copy.deepcopy(best_params)
             jit_index = random.sample(xrange(len(best_params)), 1)[0]
             jit_params[jit_index][1] += \
-                (0.05 * best_err * (random.random() - 0.5) +
-                 0.01 * pressure)
+                random.gauss(0, 0.05 * best_err + 0.01 * pressure)
             jit_param_list.append((jit_params, slope))
         # Release the workers
         output = worker_pool.map(passband_worker, jit_param_list)
