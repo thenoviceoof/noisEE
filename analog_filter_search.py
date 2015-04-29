@@ -64,7 +64,7 @@ def find_passbands(slope, params):
     itr_count = 0
     pressure, pressurep = 0, False
     # Keep on looking while we don't have the best fit
-    while ((best_err > 2 or pressure < 10) and
+    while ((best_err > 2 or pressure < 20) and
            not (itr_count > 200 and best_err < 5) and
            not (itr_count > 9998)):
         # Generate list of tweaked passbands
@@ -73,7 +73,7 @@ def find_passbands(slope, params):
             jit_params = copy.deepcopy(best_params)
             jit_index = random.sample(xrange(len(best_params)), 1)[0]
             jit_params[jit_index][1] += \
-                random.gauss(0, 0.05 * best_err + 0.01 * pressure)
+                random.gauss(0, 0.05 * best_err + 0.05 * pressure)
             jit_param_list.append((jit_params, slope))
         # Release the workers
         output = worker_pool.map(passband_worker, jit_param_list)
@@ -82,6 +82,7 @@ def find_passbands(slope, params):
             best_m, best_b = m, b
             best_err = err
             best_params = jit_params
+        else:
             pressurep = True
 
         itr_count += 1
