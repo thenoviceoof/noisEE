@@ -6,6 +6,8 @@ import argparse
 import math
 import numpy
 
+from multiprocessing import Pool
+
 from characteristics import filter_characteristics
 from libnoisEE import *
 
@@ -43,7 +45,17 @@ def combine_errors(m, b, var_err, min_freq, slope):
     err = 1 * var_err + 1 * org_err + 100 * slp_err
     return err
 
+def passband_worker(params):
+    jit_params, slope = params
+    # apply filters/combine filter outputs
+    m, b, var_err, min_freq = fit_filter_combine(jit_params)
+    # combine all error sources
+    err = combine_errors(m, b, var_err, min_freq, slope)
+    return m, b, err, jit_params
+
 def find_passbands(slope, params):
+    worker_pool = Pool()
+
     best_params = params
     m, b, var_err, min_freq = fit_filter_combine(params)
     best_err = combine_errors(m, b, var_err, min_freq, slope)
@@ -53,25 +65,26 @@ def find_passbands(slope, params):
     pressure, pressurep = 0, False
     # Keep on looking while we don't have the best fit
     while ((best_err > 2 or pressure < 10) and
-           not (itr_count > 1000 and best_err < 5) and
+           not (itr_count > 200 and best_err < 5) and
            not (itr_count > 9998)):
-        for j in range(20):
-            # Tweak the passbands
+        # Generate list of tweaked passbands
+        jit_param_list = []
+        for j in range(100):
             jit_params = copy.deepcopy(best_params)
             jit_index = random.sample(xrange(len(best_params)), 1)[0]
             jit_params[jit_index][1] += \
                 (0.05 * best_err * (random.random() - 0.5) +
                  0.01 * pressure)
-            # apply filters/combine filter outputs
-            m, b, var_err, min_freq = fit_filter_combine(jit_params)
-            # combine all error sources
-            err = combine_errors(m, b, var_err, min_freq, slope)
-            # Fit each, use the best fit
-            if err < best_err:
-                best_m, best_b = m, b
-                best_err = err
-                best_params = jit_params
-                pressurep = True
+            jit_param_list.append((jit_params, slope))
+        # Release the workers
+        output = worker_pool.map(passband_worker, jit_param_list)
+        m, b, err, jit_params = min(output, key=lambda a: a[2])
+        if err < best_err:
+            best_m, best_b = m, b
+            best_err = err
+            best_params = jit_params
+            pressurep = True
+
         itr_count += 1
         # Pressure the optimizer / check if this is the best outcome
         if pressurep:
