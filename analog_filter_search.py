@@ -11,6 +11,8 @@ from multiprocessing import Pool
 from characteristics import filter_characteristics
 from libnoisEE import *
 
+import itertools
+
 def ideal_filter(knee_freq, pass_band, steps=1024, high_freq=SAMPLE_RATE/2):
     stops = [float(high_freq) * (99.1/100)**i for i in range(steps)]
     feed = [1/((s/knee_freq)**2 + 1)**0.5 for s in stops]
@@ -46,16 +48,17 @@ def combine_errors(m, b, var_err, min_freq, slope):
     return err
 
 def passband_worker(params):
-    jit_params, slope = params
-    # apply filters/combine filter outputs
-    m, b, var_err, min_freq = fit_filter_combine(jit_params)
-    # combine all error sources
-    err = combine_errors(m, b, var_err, min_freq, slope)
-    return m, b, err, jit_params
+    try:
+        jit_params, slope = params
+        # apply filters/combine filter outputs
+        m, b, var_err, min_freq = fit_filter_combine(jit_params)
+        # combine all error sources
+        err = combine_errors(m, b, var_err, min_freq, slope)
+        return m, b, err, jit_params
+    except KeyboardInterrupt:
+        pass
 
-def find_passbands(slope, params):
-    worker_pool = Pool()
-
+def find_passbands(worker_pool, slope, params):
     best_params = params
     m, b, var_err, min_freq = fit_filter_combine(params)
     best_err = combine_errors(m, b, var_err, min_freq, slope)
@@ -120,42 +123,51 @@ def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
     # make sure the slope steps and start/end agree
     assert slope_end < slope_start
     assert slope_step < 0
-    # For each slope...
-    slope = slope_start
-    while slope >= slope_end:
-        # skip if we've already calculated
-        if slope in data:
-            params = [p for _,p in data[slope]]
-            slope += slope_step
-            continue
+    # Make a worker pool, allow quitting gracefully from it
+    worker_pool = Pool()
+    try:
+        # For each slope...
+        slope = slope_start
+        while slope >= slope_end:
+            # skip if we've already calculated
+            if slope in data:
+                params = [p for _,p in data[slope]]
+                slope += slope_step
+                continue
 
-        print '=' * 80
-        print 'Slope target: {:.5}'.format(slope)
+            print '=' * 80
+            print 'Slope target: {:.5}'.format(slope)
 
-        passband_generator = find_passbands(slope, params)
-        for params, err, m, b, itr_count in passband_generator:
-            # Print best guess
-            sys.stdout.write('\r' + (' ' * 82))
-            param_str = ','.join(["{:.3}".format(p) for _,p in params])
-            out_str = "\r[{:4}] Err {:.5} Param {} m/b {:.3}/{:.3}".format(
-                itr_count + 1, err, param_str, m, b)
-            sys.stdout.write(out_str)
-            sys.stdout.flush()
-            # Save the outputs for stdout every once in a while
-            itr_count += 1
-            if itr_count % 100 == 0:
+            passband_generator = find_passbands(worker_pool, slope, params)
+            for params, err, m, b, itr_count in passband_generator:
+                # Print best guess
+                sys.stdout.write('\r' + (' ' * 82))
+                param_str = ','.join(["{:.3}".format(p) for _,p in params])
+                out_str = "\r[{:4}] Err {:.5} Param {} m/b {:.3}/{:.3}".format(
+                    itr_count + 1, err, param_str, m, b)
+                sys.stdout.write(out_str)
+                sys.stdout.flush()
+                # Save the outputs for stdout every once in a while
+                itr_count += 1
+                if itr_count % 100 == 0:
+                    print ""
+            else:
                 print ""
-        else:
-            print ""
-        # Print the best param/final error
-        print params
-        print err
-        # Accumulate params, write out
-        data[slope] = list(zip(knees, params))
-        log_file.seek(0)
-        log_file.write(pickle.dumps(data))
-        log_file.flush()
-        slope += slope_step
+            # Print the best param/final error
+            print params
+            print err
+            # Accumulate params, write out
+            data[slope] = list(zip(knees, params))
+            log_file.seek(0)
+            log_file.write(pickle.dumps(data))
+            log_file.flush()
+            slope += slope_step
+    except KeyboardInterrupt:
+        print ''
+        print 'ABORTING...'
+        worker_pool.close()
+        print 'ABORT COMPLETE'
+        sys.exit(1)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
