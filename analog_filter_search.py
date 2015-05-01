@@ -70,10 +70,8 @@ def find_passbands(slope, params):
         # Generate list of tweaked passbands
         jit_param_list = []
         for j in range(100):
-            jit_params = copy.deepcopy(best_params)
-            jit_index = random.sample(xrange(len(best_params)), 1)[0]
-            jit_params[jit_index][1] += \
-                random.gauss(0, 0.05 * best_err + 0.01 * pressure**2)
+            width = 0.05 * best_err + 0.01 * pressure**2
+            jit_params = [p + random.gauss(0, width) for p in best_params]
             jit_param_list.append((jit_params, slope))
         # Release the workers
         output = worker_pool.map(passband_worker, jit_param_list)
