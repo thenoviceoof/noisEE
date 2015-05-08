@@ -94,7 +94,7 @@ def find_passbands(worker_pool, slope, params):
         # Generate list of tweaked passbands
         jit_param_list = []
         for j in range(100):
-            width = 0.05 * best_err + 0.01 * pressure**2
+            width = 0.2 * best_err + 0.05 * pressure**2
             jit_params = [[s,p + random.gauss(0, width)] for s,p in best_params]
             jit_param_list.append((jit_params, slope))
         # Release the workers
