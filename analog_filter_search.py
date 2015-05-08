@@ -56,6 +56,10 @@ def passband_worker(params):
         err = combine_errors(m, b, var_err, min_freq, slope)
         return m, b, err, jit_params
     except KeyboardInterrupt:
+        # Allow quitting out of pools with a keyboard interrupt
+        pass
+    except ValueError:
+        # Catch and ignore math domain errors (negative log)
         pass
 
 def find_passbands(worker_pool, slope, params):
@@ -98,6 +102,8 @@ def find_passbands(worker_pool, slope, params):
     yield best_params, best_err, best_m, best_b, itr_count
 
 def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
+    numpy.seterr(over='ignore')
+
     # grab any previous writes
     try:
         data_file = open('analog_characteristic.log')
