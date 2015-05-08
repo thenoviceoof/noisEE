@@ -63,7 +63,24 @@ def passband_worker(params):
         pass
 
 def find_passbands(worker_pool, slope, params):
-    best_params = params
+    # preseed with random elements
+    print 'Finding preseed...'
+    slopes = [p[0] for p in params]
+    random_dbs = []
+    while len(random_dbs) < 10000:
+        dbs = [random.uniform(0, -80) for j in range(len(params))]
+        if all(x + 10 > y for x,y in zip(dbs,dbs[1:])):
+            random_dbs.append(dbs)
+    random_params = ((list(zip(slopes, p)), slope) for p in random_dbs)
+    grid_output = worker_pool.map(passband_worker, random_params)
+    _, _, best_err, best_params = min((g for g in grid_output if g),
+                                      key=lambda a: a[2])
+    if best_err > passband_worker((params, slope))[2]:
+        best_params = params
+    else:
+        print 'Found better starting parameters'
+        sys.stdout.flush()
+
     m, b, var_err, min_freq = fit_filter_combine(params)
     best_err = combine_errors(m, b, var_err, min_freq, slope)
     best_m, best_b = m, b
