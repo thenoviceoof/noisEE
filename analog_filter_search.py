@@ -99,7 +99,7 @@ def find_passbands(worker_pool, slope, params):
             jit_param_list.append((jit_params, slope))
         # Release the workers
         output = worker_pool.map(passband_worker, jit_param_list)
-        m, b, err, jit_params = min(output, key=lambda a: a[2])
+        m, b, err, jit_params = min((g for g in output if g), key=lambda a: a[2])
         if err < best_err:
             best_m, best_b = m, b
             best_err = err
