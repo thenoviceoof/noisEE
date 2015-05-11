@@ -46,7 +46,7 @@ def combine_errors(m, b, var_err, min_freq, slope):
     org_err = abs(m * min_freq - b)
     slp_err = abs(m - slope)
     #  1 / 1 / 10 bc fine grained slope
-    err = 1 * var_err + 10 * org_err + 100 * slp_err
+    err = 1 * var_err + 1 * org_err + 100 * slp_err
     return err
 
 def passband_worker(params):
