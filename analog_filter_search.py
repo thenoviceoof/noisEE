@@ -70,7 +70,7 @@ def find_passbands(worker_pool, slope, params):
     slopes = [p[0] for p in params]
     random_dbs = []
     while len(random_dbs) < 10000:
-        dbs = [random.uniform(0, -80) for j in range(len(params))]
+        dbs = [random.uniform(0, -40) for j in range(len(params))]
         if all(x + 10 > y for x,y in zip(dbs,dbs[1:])):
             random_dbs.append(dbs)
     random_params = ((list(zip(slopes, p)), slope) for p in random_dbs)
