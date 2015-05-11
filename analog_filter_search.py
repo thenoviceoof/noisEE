@@ -13,6 +13,8 @@ from libnoisEE import *
 
 import itertools
 
+FLOATING_POINT_EPSILON = 1e-4
+
 def ideal_filter(knee_freq, pass_band, steps=1024, high_freq=SAMPLE_RATE/2):
     stops = [float(high_freq) * (99.1/100)**i for i in range(steps)]
     feed = [1/((s/knee_freq)**2 + 1)**0.5 for s in stops]
@@ -104,7 +106,8 @@ def find_passbands(worker_pool, slope, params):
             best_m, best_b = m, b
             best_err = err
             best_params = jit_params
-        else:
+        # Add pressure if we're not more than a tiny bit better
+        if err > best_err - FLOATING_POINT_EPSILON:
             pressurep = True
 
         itr_count += 1
