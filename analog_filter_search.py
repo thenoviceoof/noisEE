@@ -91,8 +91,8 @@ def find_passbands(worker_pool, slope, params):
     pressure, pressurep = 0, False
     # Keep on looking while we don't have the best fit
     while ((best_err > 2 or pressure < 20) and
-           not (itr_count > 200 and best_err < 5) and
-           not (itr_count > 9998)):
+           not (pressure > 100 and best_err < 5) and
+           (pressure < 200)):
         # Generate list of tweaked passbands
         jit_param_list = []
         for j in range(100):
