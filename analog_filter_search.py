@@ -64,13 +64,15 @@ def passband_worker(params):
         # Catch and ignore math domain errors (negative log)
         pass
 
-def find_passbands(worker_pool, slope, params):
+def find_passbands(worker_pool, slope, params,
+                   preseed=10000, preseed_floor=-40,
+                   branching_factor=100, pressure_threshold=200):
     # preseed with random elements
     print 'Finding preseed...'
     slopes = [p[0] for p in params]
     random_dbs = []
-    while len(random_dbs) < 10000:
-        dbs = [random.uniform(0, -40) for j in range(len(params))]
+    while len(random_dbs) < preseed:
+        dbs = [random.uniform(0, preseed_floor) for j in range(len(params))]
         if all(x + 10 > y for x,y in zip(dbs,dbs[1:])):
             random_dbs.append(dbs)
     random_params = ((list(zip(slopes, p)), slope) for p in random_dbs)
@@ -90,12 +92,10 @@ def find_passbands(worker_pool, slope, params):
     itr_count = 0
     pressure, pressurep = 0, False
     # Keep on looking while we don't have the best fit
-    while ((best_err > 2 or pressure < 20) and
-           not (pressure > 100 and best_err < 5) and
-           (pressure < 200)):
+    while pressure < pressure_threshold:
         # Generate list of tweaked passbands
         jit_param_list = []
-        for j in range(100):
+        for j in range(branching_factor):
             width = 0.2 * best_err + 0.05 * pressure**2
             jit_params = [[s,p + random.gauss(0, width)] for s,p in best_params]
             jit_param_list.append((jit_params, slope))
@@ -121,7 +121,9 @@ def find_passbands(worker_pool, slope, params):
         yield best_params, best_err, best_m, best_b, itr_count
     yield best_params, best_err, best_m, best_b, itr_count
 
-def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
+def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0,
+         preseed=10000, preseed_floor=-40,
+         branching_factor=100, pressure_threshold=200):
     numpy.seterr(over='ignore')
 
     # grab any previous writes
@@ -164,7 +166,11 @@ def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
             print '=' * 80
             print 'Slope target: {:.5}'.format(slope)
 
-            passband_generator = find_passbands(worker_pool, slope, params)
+            passband_generator = find_passbands(
+                worker_pool, slope, params,
+                preseed=preseed, preseed_floor=preseed_floor,
+                branching_factor=branching_factor,
+                pressure_threshold=pressure_threshold)
             for params, err, m, b, itr_count in passband_generator:
                 # Print best guess
                 sys.stdout.write('\r' + (' ' * 82))
@@ -198,7 +204,16 @@ def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('knees', nargs='+', type=float)
+    parser.add_argument('-p', '--preseed', type=int, default=10000,
+                        help='Number of random preseeds to consider')
+    parser.add_argument('--preseed-floor', type=float, default=-40,
+                        help='Floor of preseed generated numbers')
+    parser.add_argument('-i', '--pressure', type=int, default=200,
+                        help='Number of iterations to check a solution for')
+    parser.add_argument('-b', '--branching', type=int, default=100,
+                        help='Number of copies to spawn at each iteration')
 
     args = parser.parse_args()
 
-    main(args.knees)
+    main(args.knees, preseed=args.preseed, preseed_floor=args.preseed_floor,
+         branching_factor=args.branching, pressure_threshold=args.pressure)
