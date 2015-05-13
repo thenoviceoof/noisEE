@@ -15,8 +15,15 @@ import itertools
 
 FLOATING_POINT_EPSILON = 1e-4
 
-def ideal_filter(knee_freq, pass_band, steps=1024, high_freq=SAMPLE_RATE/2):
-    stops = [float(high_freq) * (99.1/100)**i for i in range(steps)]
+LG_LOWEST_HUMAN_FREQUENCY = math.log(20, 10)
+
+def ideal_filter(knee_freq, pass_band, steps=1024, low_freq=20,
+                 high_freq=SAMPLE_RATE/2):
+    frac_stops = [float(i)/(steps - 1) for i in range(steps)]
+    log_diff = math.log(high_freq, 10) - math.log(low_freq, 10)
+    log_stops = [log_diff * s + math.log(low_freq, 10)
+                 for s in frac_stops]
+    stops = [10**s for s in log_stops]
     feed = [1/((s/knee_freq)**2 + 1)**0.5 for s in stops]
     feedb = [pass_band + 20 * math.log(f, 10) for f in feed]
     return stops, feedb
@@ -43,7 +50,7 @@ def fit_filter_combine(params):
     return m, b, err, lg_freq[0]
 
 def combine_errors(m, b, var_err, min_freq, slope):
-    org_err = abs(m * min_freq - b)
+    org_err = abs(m * min_freq + b)
     slp_err = abs(m - slope)
     #  1 / 1 / 10 bc fine grained slope
     err = 1 * var_err + 1 * org_err + 100 * slp_err
@@ -53,9 +60,9 @@ def passband_worker(params):
     try:
         jit_params, slope = params
         # apply filters/combine filter outputs
-        m, b, var_err, min_freq = fit_filter_combine(jit_params)
+        m, b, var_err, _ = fit_filter_combine(jit_params)
         # combine all error sources
-        err = combine_errors(m, b, var_err, min_freq, slope)
+        err = combine_errors(m, b, var_err, LG_LOWEST_HUMAN_FREQUENCY, slope)
         return m, b, err, jit_params
     except KeyboardInterrupt:
         # Allow quitting out of pools with a keyboard interrupt
@@ -121,7 +128,7 @@ def find_passbands(worker_pool, slope, params,
         yield best_params, best_err, best_m, best_b, itr_count
     yield best_params, best_err, best_m, best_b, itr_count
 
-def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0,
+def main(knees, slope_step=-0.2, slope_start=0.0, slope_end=-20.0,
          preseed=10000, preseed_floor=-40,
          branching_factor=100, pressure_threshold=200):
     numpy.seterr(over='ignore')
@@ -149,7 +156,7 @@ def main(knees, slope_step=-0.1, slope_start=0.0, slope_end=-6.0,
     params = [[knee, -100.0] for knee in knees]
     params[-1][1] = 0.0
     # make sure the slope steps and start/end agree
-    assert slope_end < slope_start
+    assert slope_end <= slope_start
     assert slope_step < 0
     # Make a worker pool, allow quitting gracefully from it
     worker_pool = Pool()
