@@ -76,6 +76,7 @@ def explore(parameters, target_m, target_b):
     min_loss =  get_loss_from_parameters(parameters, target_m, target_b)
     step_size = 1 - 1./(min_loss + 1)
     min_parameters =  parameters
+    changes = 0
     for i in range(20000):
         g_step = step_size * 2 * (random.random() - 0.5)
         local_parameters = [(f_c, 10**(math.log10(g) + g_step))
@@ -85,6 +86,8 @@ def explore(parameters, target_m, target_b):
             min_loss = loss
             min_parameters = local_parameters
             step_size = 1 - 1./(min_loss/10. + 1)
+            changes += 1
+    print 'Changed {} times'.format(changes)
     return min_loss, min_parameters
 
 def interval_explore(start_parameters, stop_parameters, m_interval, b_interval, n=11):
