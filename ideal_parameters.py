@@ -114,7 +114,7 @@ def interval_explore(start_parameters, stop_parameters, m_interval, b_interval, 
 ################################################################################
 # Main
 
-N = 11
+N = 31
 
 white_pink_parameters = interval_explore(PINK_PARAMS, WHITE_PARAMS, (-10, 0), (10, 0), n = N)
 pink_red_parameters = interval_explore(PINK_PARAMS, RED_PARAMS, (-10, -20), (10, 20), n = N)
