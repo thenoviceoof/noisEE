@@ -1,7 +1,7 @@
 library(segmented)
 library(ggplot2)
 
-data = read.csv(file="gains_20k_60_sorted.csv", head=TRUE, sep=",")
+data = read.csv(file="gains_20k_60_nonlinear.csv", head=TRUE, sep=",")
 
 breakpoints = function(x, y, number) {
     initialBreakpoints = seq(-20, 0, length.out=number+2)[2:(number + 1)]
