@@ -55,7 +55,7 @@ mat = matrix(c(
     c(hBreak$x, hBreak$y)),
     ncol = length(cBreak$x) + length(cBreak$y),
     byrow=TRUE)
-rownames(mat) = c("Constant (2,000,000hz)",
+rownames(mat) = c("Constant (2.000.000hz)",
                   "Low (16.5hz)",
                   "Medium (270hz)",
                   "High (5300hz)")
