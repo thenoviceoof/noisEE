@@ -85,10 +85,11 @@ def apply_filter(params, slope, data):
     return output_data
 
 
+chunks = 40
 output_data = []
-chunk_size = len(data) / 10
-for i in range(10):
-    slope = -20 * float(i)/9.0
+chunk_size = len(data) / chunks
+for i in range(chunks):
+    slope = -20 * float(i)/(chunks - 1)
     output_data += apply_filter(params, slope,
                                 data[i * chunk_size:(i+1) * chunk_size])
 
