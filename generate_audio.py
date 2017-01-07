@@ -58,6 +58,7 @@ def apply_filter(params, slope, data):
     
     # Convert the slope to a target gain.
     for name, linear_fn in params.iteritems():
+        max_gain = max([g for _,g in linear_fn])
         gain = None
         for i in range(len(linear_fn)-1):
             if linear_fn[i][0] <= slope < linear_fn[i+1][0]:
@@ -66,6 +67,11 @@ def apply_filter(params, slope, data):
                 break
         if gain is None:
             gain = linear_fn[-1][1]
+        # Snap to the nearest potentiometer step.
+        if gain < 0:
+            gain = 0
+        steps = 1024
+        gain = math.floor(steps*gain/max_gain)/steps * max_gain
         fc_gain[index_dict[name]][1] = gain
 
     # Convert the fc/gain params to a function
