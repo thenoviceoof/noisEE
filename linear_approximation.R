@@ -60,7 +60,7 @@ rownames(mat) = c("Constant (2.000.000hz)",
                   "Medium (270hz)",
                   "High (5300hz)")
 colnames(mat) = c(paste("x", lapply(seq(1, 8, by = 1), toString), sep=""),
-                  paste("x", lapply(seq(1, 8, by = 1), toString), sep=""))
+                  paste("y", lapply(seq(1, 8, by = 1), toString), sep=""))
 print(mat)
 
 write.csv(mat, file="linear_parameters.csv", quote=FALSE)
