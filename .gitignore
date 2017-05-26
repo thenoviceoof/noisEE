@@ -5,3 +5,6 @@
 *.tmp
 
 *.csv
+
+avr/*.o
+avr/*.elf
