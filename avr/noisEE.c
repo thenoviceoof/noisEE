@@ -381,7 +381,7 @@ void main() {
                                 // Write to the digital potentiometers. Skip
                                 // the write if the input value didn't change.
                                 if(PreviousADCValue != ADCValue) {
-                                        calculateAndWritePotentiometers(ADCValue);
+                                        calculateAndWriteFilterValues(ADCValue);
                                 }
                                 PreviousADCValue = ADCValue;
                                 
