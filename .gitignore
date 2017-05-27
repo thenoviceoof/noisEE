@@ -8,3 +8,4 @@
 
 avr/*.o
 avr/*.elf
+avr/*.hex
