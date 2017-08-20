@@ -6,6 +6,8 @@
 
 *.csv
 
+art/
+
 avr/*.o
 avr/*.elf
 avr/*.hex
