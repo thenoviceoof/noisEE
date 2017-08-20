@@ -9,3 +9,5 @@
 avr/*.o
 avr/*.elf
 avr/*.hex
+
+hardware/*bak
