@@ -1,3 +1,4 @@
+#include <avr/cpufunc.h>  // Provides _NOP
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <avr/sleep.h>
@@ -115,7 +116,7 @@ uint16_t interpolatePiecewiseLinearFunction(uint16_t unpaddedX,
                         maxIndex = midIndex - 1;
                 } else if(x > xs[midIndex + 1]) {
                         minIndex = midIndex + 1;
-                } else { // x >= xs[midIndex] && x <= xs[midIndex + 1]
+                } else {
                         maxIndex = midIndex;
                         break;
                 }
@@ -142,16 +143,29 @@ uint16_t interpolatePiecewiseLinearFunction(uint16_t unpaddedX,
 /**
  * The previous output value of the individual filter parameters.
  */
-int PREVIOUS_FILTER_0016 = 0;
-int PREVIOUS_FILTER_0270 = 0;
-int PREVIOUS_FILTER_5300 = 0;
-int PREVIOUS_FILTER_0000 = 0;
+uint16_t PREVIOUS_FILTER_0016 = 0;
+uint16_t PREVIOUS_FILTER_0270 = 0;
+uint16_t PREVIOUS_FILTER_5300 = 0;
+uint16_t PREVIOUS_FILTER_0000 = 0;
+
+void unselect() {
+        // Unselect the device, wait for RDY in max 2.4uS (default R-Perf mode).
+        PORTA |= (1 << PCINT0) | (1 << PCINT1) | (1 << PCINT2) | (1 << PCINT3);
+        _NOP();
+        _NOP();
+        _NOP();
+}
+
+void selectWait() {
+        // Wait 2 ns for RDY after chip select (SS).
+        _NOP();
+}
 
 void calculateAndWriteFilterValues(int input) {
-        int filter0016 = 0;
-        int filter0270 = 0;
-        int filter5300 = 0;
-        int filter0000 = 0;
+        uint16_t filter0016 = 0;
+        uint16_t filter0270 = 0;
+        uint16_t filter5300 = 0;
+        uint16_t filter0000 = 0;
         calculateFilterParameters(
                 input,
                 &filter0016,
@@ -162,57 +176,81 @@ void calculateAndWriteFilterValues(int input) {
 
         // For each device, select and then write the value over SPI.
         // Note that the active pin is LOW, not HIGH.
-        if (filter0016 != PREVIOUS_FILTER_0016) {
+        // TEST TEST TEST: ALWAYS WRITE EACH VALUE
+        /* if (filter0016 != PREVIOUS_FILTER_0016) { */
+        if (1) {
                 PREVIOUS_FILTER_0016 = filter0016;
                 PORTA = (PORTA & ~(1 << PCINT0)) |
                         (1 << PCINT1) | (1 << PCINT2) | (1 << PCINT3);
+                selectWait();
                 writeFilterValue(filter0016);
+                unselect();
         }
-        if (filter0270 != PREVIOUS_FILTER_0270) {
+        /* if (filter0270 != PREVIOUS_FILTER_0270) { */
+        if (1) {
                 PREVIOUS_FILTER_0270 = filter0270;
                 PORTA = (PORTA & ~(1 << PCINT1)) |
                         (1 << PCINT0) | (1 << PCINT2) | (1 << PCINT3);
+                selectWait();
                 writeFilterValue(filter0270);
+                unselect();
         }
-        if (filter5300 != PREVIOUS_FILTER_5300) {
+        /* if (filter5300 != PREVIOUS_FILTER_5300) { */
+        if (1) {
                 PREVIOUS_FILTER_5300 = filter5300;
                 PORTA = (PORTA & ~(1 << PCINT2)) |
                         (1 << PCINT0) | (1 << PCINT1) | (1 << PCINT3);
+                selectWait();
                 writeFilterValue(filter5300);
+                unselect();
         }
-        if (filter0000 != PREVIOUS_FILTER_0000) {
+        /* if (filter0000 != PREVIOUS_FILTER_0000) { */
+        if (1) {
                 PREVIOUS_FILTER_0000 = filter0000;
                 PORTA = (PORTA & ~(1 << PCINT3)) |
                         (1 << PCINT0) | (1 << PCINT1) | (1 << PCINT2);
+                selectWait();
                 writeFilterValue(filter0000);
+                unselect();
         }
-
-        // Set all pins to non-active.
-        PORTA |= (1 << PCINT0) | (1 << PCINT1) | (1 << PCINT2) | (1 << PCINT3);
 }
 
 void enableAllDevices() {
+        // Make sure all devices are not selected.
+        unselect();
+
+        // Start with a low USCK/SCL
+        PORTA &= ~(1 << PCINT4);
+
         // For each device, select and then write the value over SPI.
         // Note that the active pin is LOW, not HIGH.
         // Pin 13.
         PORTA = (PORTA & ~(1 << PCINT0)) |
                 (1 << PCINT1) | (1 << PCINT2) | (1 << PCINT3);
+        selectWait();
         writeDisableWriteProtect();
+        unselect();
+        
         // Pin 12.
         PORTA = (PORTA & ~(1 << PCINT1)) |
                 (1 << PCINT0) | (1 << PCINT2) | (1 << PCINT3);
+        selectWait();
         writeDisableWriteProtect();
+        unselect();
+
         // Pin 11.
         PORTA = (PORTA & ~(1 << PCINT2)) |
                 (1 << PCINT0) | (1 << PCINT1) | (1 << PCINT3);
+        selectWait();
         writeDisableWriteProtect();
+        unselect();
+
         // Pin 10.
         PORTA = (PORTA & ~(1 << PCINT3)) |
                 (1 << PCINT0) | (1 << PCINT1) | (1 << PCINT2);
+        selectWait();
         writeDisableWriteProtect();
-
-        // Set all pins to non-active.
-        PORTA |= (1 << PCINT0) | (1 << PCINT1) | (1 << PCINT2) | (1 << PCINT3);
+        unselect();
 }
 
 /**
@@ -231,26 +269,29 @@ void writeDisableWriteProtect() {
 }
 
 void writeFilterValue(int value) {
+        // A wiper value of 0 corresponds to the full resistance, and
+        // hence the maximum loudness. Invert the value to have
+        // familiar bigger-louder semantics.
+        value = 1023 - value;
+
         // Write command: 00|0001|DD - Dx8
         // Send the first byte, a write command and top two data bits.
-        writeSPIValue((1 << 3) | (value >> 8));
+        writeSPIValue((1 << 2) | (value >> 8));
 
         // Send the second byte, simply the last 8 data bits.
         writeSPIValue(value & 255);
 }
 
 void writeSPIValue(char byte) {
-        char i;
         // Load up the byte to write.
         USIDR = byte;
+        // Clear the counter/counter flag.
+        USISR |= (1 << USIOIF);
 
-        for(i = 0; i < 8; i++) {
-                // Rising clock edge.
-                PORTA |= (1 << PCINT4); // USCK/SCL
-                // Shift out a bit.
-                USICR |= (1 << USICLK);
-                // Falling clock edge: the value will get read here.
-                PORTA &= ~(1 << PCINT4); // USCK/SCL
+        // If we're not done shifting yet, keep shifting.
+        while(!(USISR & (1 << USIOIF))) {
+                // Move a bit out.
+                USICR |= (1 << USITC);
         }
 }
 
@@ -258,7 +299,7 @@ void writeSPIValue(char byte) {
  * Sleep after writing to the potentiometers.
  */
 void sleepForABit() {
-        // Usen the 8 bit timer.
+        // Use the 8 bit timer.
         // Initialize the timer register.
         TCNT0 = 0;
         
@@ -277,6 +318,8 @@ void sleepForABit() {
                                 
         // Keep peripherals (like the timer) running while sleeping.
         set_sleep_mode(SLEEP_MODE_IDLE);
+        // Enable interrupts.
+        sei();
         // Sleep until the timer triggers.
         sleep_mode();
 }
@@ -314,8 +357,8 @@ typedef enum {
 } State;
 
 State GlobalState;
-int ADCValue;
-int PreviousADCValue =  0;
+uint16_t ADCValue = 0;
+uint16_t PreviousADCValue = 0;
 
 void main() {
         /* -- Initial Configuration ----------------------------------------- */
@@ -328,74 +371,133 @@ void main() {
         // By default, the ADC7 pin is configured as input.
         ADCSRA |=
                 (1 << ADEN) | // Enable the ADC.
-                (1 << ADIE) | // Enable ADC complete interrupts.
+                // (1 << ADIE) | // Enable ADC complete interrupts.
                 (1 << ADPS2) | (1 << ADPS0); // Set the ADC prescaler to 32x.
         ADMUX |=
-                (1 << REFS0) | // Use Vcc as the reference.
-                (1 << MUX2) | (1 << MUX1) | (1 << MUX0); // Select ADC7.
+                // Use Vcc as the reference.
+                (0 << REFS0) | (0 << REFS1) |
+                // Select ADC7 (PCINT7).
+                (1 << MUX2) | (1 << MUX1) | (1 << MUX0);
         
         // Set up the SPI communications channels.
-        // Set the direction for the chip select pins (PA0/PA1/PA2/PA3 for
-        // 16,270,5300,inft respectively).
-        DDRA |= (1 << PA0) | (1 << PA1) | (1 << PA2) | (1 << PA3);
-        // Set the direction for the SPI pins SCL and MOSI (MISO is default input).
-        DDRB |= (1 << PCINT4 /* USCK/SCL */ ) | (1 << PCINT6 /* MOSI */);
+        DDRA |=
+                // Set the direction for the chip select pins
+                // (PA0/PA1/PA2/PA3 for 16,270,5300,inft
+                // respectively).
+                (1 << PCINT0) | (1 << PCINT1) | (1 << PCINT2) | (1 << PCINT3)
+                // Set the direction for the SPI pins SCL and MOSI
+                // (MISO is default input).
+                // NOTE: ATTiny84 marks MOSI/MISO, but this is the
+                //   opposite of what we expect. In the context of
+                //   programming the ATTiny, the master is the
+                //   programming device. Hence, you should look at the
+                //   DO/DI designation instead.
+                | (1 << PCINT4 /* USCK/SCL */)
+                | (1 << PCINT5 /* DO/real MOSI */);
 
         // Configure the SPI device.
         USICR |=
                 (0 << USIWM1) | (1 << USIWM0) // Use 3-wire (SPI) mode.
                 // Don't use the USIOIE (overflow interrupt) in favor of
                 // software strobe.
-                // USICSx are 0 for software clock; move the register with USICLK.
+                // Use software clock strobe (USITC), Mode 1 (falling edge).
+                | (1 << USICS1) | (1 << USICS0) | (1 << USICLK)
                 ;
 
+        uint16_t i = 0;
+        // Wait for the pots to set up: 2ms max power-on OTP restore time.
+        for(i = 0; i < 800; i++) {
+                _NOP();
+        }
+        
         // Configure each pot to not be read-only.
         enableAllDevices();
 
-
         /* -- Main Loop ----------------------------------------------------- */
-        while(1) {
-                if(GlobalTP20Setting && wroteTP20 == 0) {
-                        handleTP20Request();
-                        GlobalTP20Setting = 0;
-                        wroteTP20 = 1;
-                } else {
-                        switch(GlobalState) {
-                        case SleepingState:
-                                // Start a read from the ADC.
-                                ADCSRA |= (1 << ADSC);
-                                GlobalState = WaitingForReadState;
-
-                                // Sleep until the ADC value is ready.
-                                // Keep peripherals running.
-                                set_sleep_mode(SLEEP_MODE_IDLE);
-                                // Sleep until the ADC is done.
-                                sleep_mode();
-                        case WaitingForReadState:
-                                // Read from the ADC, and write to the
-                                // potentiometers.
-                                ADCValue = (ADCH << 8) | ADCL;
-
-                                GlobalState = WriteValueState;
-
-                                // Write to the digital potentiometers. Skip
-                                // the write if the input value didn't change.
-                                if(PreviousADCValue != ADCValue) {
-                                        calculateAndWriteFilterValues(ADCValue);
-                                }
-                                PreviousADCValue = ADCValue;
-                                
-                                // Go to sleep for a while.
-                                GlobalState = SleepingState;
-                                sleepForABit();
-                        }
+        // THIS IS A TEST LOOP.
+        uint16_t j = 0;
+        uint16_t k = 0;
+        while (1) {
+                for (k = 0; k < 6543; k++) {
+                        _NOP();
                 }
+                /* j += 1; */
+                /* j %= 1024; */
+                /* calculateAndWriteFilterValues(j); */
+
+                PORTA = (PORTA & ~(1 << PCINT0)) |
+                        (1 << PCINT1) | (1 << PCINT2) | (1 << PCINT3);
+                selectWait();
+                writeFilterValue(1023);
+                unselect();
+
+                PORTA = (PORTA & ~(1 << PCINT1)) |
+                        (1 << PCINT0) | (1 << PCINT2) | (1 << PCINT3);
+                selectWait();
+                writeFilterValue(1023);
+                unselect();
+
+                PORTA = (PORTA & ~(1 << PCINT2)) |
+                        (1 << PCINT0) | (1 << PCINT1) | (1 << PCINT3);
+                selectWait();
+                writeFilterValue(1023);
+                unselect();
+
+                PORTA = (PORTA & ~(1 << PCINT3)) |
+                        (1 << PCINT0) | (1 << PCINT1) | (1 << PCINT2);
+                selectWait();
+                writeFilterValue(1023);
+                unselect();
         }
+
+        // THIS IS THE REAL LOOP.
+        /* while(1) { */
+        /*         if(GlobalTP20Setting && wroteTP20 == 0) { */
+        /*                 handleTP20Request(); */
+        /*                 GlobalTP20Setting = 0; */
+        /*                 wroteTP20 = 1; */
+        /*         } else { */
+        /*                 switch(GlobalState) { */
+        /*                 case SleepingState: */
+        /*                         GlobalState = WaitingForReadState; */
+
+        /*                         // Sleep until the ADC value is ready. */
+        /*                         // Keep peripherals running. */
+        /*                         set_sleep_mode(SLEEP_MODE_IDLE); */
+
+        /*                         // Enable interrupts. */
+        /*                         sei(); */
+        /*                         // Start a read from the ADC. */
+        /*                         ADCSRA |= (1 << ADSC) | (1 << ADIE); */
+                                
+        /*                         // Sleep until the ADC is done. */
+        /*                         sleep_mode(); */
+        /*                         // while () ; */
+        /*                         break; */
+        /*                 case WriteValueState: */
+        /*                         // Read from the ADC, and write to the */
+        /*                         // potentiometers. */
+        /*                         ADCValue = ADC; */
+        /*                         if(PreviousADCValue < ADCValue - 2 || */
+        /*                            PreviousADCValue > ADCValue + 2) { */
+        /*                                 calculateAndWriteFilterValues(ADCValue); */
+        /*                         } */
+        /*                         PreviousADCValue = ADCValue; */
+                                
+        /*                         // Go to sleep for a while. */
+        /*                         GlobalState = SleepingState; */
+        /*                         sleepForABit(); */
+        /*                         break; */
+        /*                 } */
+        /*         } */
+        /* } */
 }
 
 // Handle the ADC conversion finishing.
 ISR(ADC_vect) {
         GlobalState = WriteValueState;
+        // Disable the ADC interrupts until we need it next time.
+        ADCSRA &= ~(1 << ADIE);
 }
 
 // Handle the timer triggering.
