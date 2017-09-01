@@ -46,8 +46,7 @@ data = read_wav('white_noise.wav')
 ################################################################################
 # Filter the noise.
 
-def apply_filter(params, slope, data):
-    # Prep coefficients
+def slope_to_coefficients(params, slope):
     fc_gain = [[2000000, None], [16.5, None], [270.0, None], [5300.0, None]]
     index_dict = {
         'constant': 0,
@@ -55,7 +54,7 @@ def apply_filter(params, slope, data):
         'medium': 2,
         'high': 3,
     }
-    
+
     # Convert the slope to a target gain.
     for name, linear_fn in params.iteritems():
         max_gain = max([g for _,g in linear_fn])
@@ -78,26 +77,32 @@ def apply_filter(params, slope, data):
     tmp_coefs = [(1-(1/SAMPLE_RATE)/(1/(2*math.pi*fc) + 1/SAMPLE_RATE), gain)
                 for fc, gain in fc_gain]
     coefs = [(A, gain*(1-A)) for A, gain in tmp_coefs]
-    pprint(coefs)
+    return coefs
+
+def apply_continuous_filter(params, slope_spec, data):
+    # Prep coefficients
+    fc_gain = [[2000000, None], [16.5, None], [270.0, None], [5300.0, None]]
+    index_dict = {
+        'constant': 0,
+        'low': 1,
+        'medium': 2,
+        'high': 3,
+    }
+    max_slope, min_slope = slope_spec
 
     # Apply to the data.
     output_data = []
     filtered = [0, 0, 0, 0]
-    for d in data:
+    for i,d in enumerate(data):
+        slope = float(max_slope - min_slope)*(float(i)/len(data)) + min_slope
+        coefs = slope_to_coefficients(params, slope)
         filtered = [cf[0] * prev + cf[1] * d for prev,cf in zip(filtered, coefs)]
         raw_output = sum(filtered)
         trim_output = min(max(int(raw_output), -2**15), 2**15 - 1)
         output_data.append(trim_output)
     return output_data
 
-
-chunks = 40
-output_data = []
-chunk_size = len(data) / chunks
-for i in range(chunks):
-    slope = -20 * float(i)/(chunks - 1)
-    output_data += apply_filter(params, slope,
-                                data[i * chunk_size:(i+1) * chunk_size])
+output_data = apply_continuous_filter(params, [-20, 0], data)
 
 ################################################################################
 # Write the noise to a WAV.
