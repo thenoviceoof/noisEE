@@ -9,16 +9,20 @@ breakpoints = function(x, y, number) {
     segments
 }
 
-plotBreakpoints = function(x, y, number, name) {
+plotBreakpoints = function(x, y, number, name, cutoff) {
     breakpointData = breakpoints(x, y, number)
     dataFrame = data.frame(x = x,
                            y = y,
                            yLinear = broken.line(breakpointData)$fit)
-    (plot = ggplot(dataFrame, aes(x=x, y=y), color='red')
-        + geom_line()
+    (plot = ggplot(dataFrame, aes(x=x, y=y))
+        + geom_line(color='red')
         + geom_line(aes(x=x, y=yLinear), color='blue')
+        + ggtitle(paste(name, " filter gain ", cutoff, sep=""))
+        + xlab("Slope (db/decade)")
+        + ylab("Gain")
     )
-    ggsave(filename=paste("linear_plot_", name, ".png", sep=""), plot)
+    # Width/height are in inches.
+    ggsave(filename=paste("linear_plot_", name, ".png", sep=""), plot, width=3, height=3)
     breakpointData
 }
 
@@ -26,10 +30,10 @@ plotBreakpoints = function(x, y, number, name) {
 # randomness fixed on a working value.
 set.seed(3)
 
-cModel = plotBreakpoints(data[, 1], data[, 3], 6, "constant")
-lModel = plotBreakpoints(data[, 1], data[, 2], 6, "low")
-mModel = plotBreakpoints(data[, 1], data[, 4], 6, "med")
-hModel = plotBreakpoints(data[, 1], data[, 5], 6, "high")
+cModel = plotBreakpoints(data[, 1], data[, 3], 6, "constant", "(no filter)")
+lModel = plotBreakpoints(data[, 1], data[, 2], 6, "low", "(16.5Hz)")
+mModel = plotBreakpoints(data[, 1], data[, 4], 6, "med", "(270Hz)")
+hModel = plotBreakpoints(data[, 1], data[, 5], 6, "high", "(5300Hz)")
 
 getBreakpoints = function(model) {
     # Extract the x value of the breakpoints.
