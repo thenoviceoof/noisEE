@@ -9,6 +9,9 @@ If you want a full explanation of the project, see notes [part
 [part
 2](http://thenoviceoof.com/blog/projects/noisee-part-2-hardware/).
 
+**NOTE**: the hardware rendition does not work. This project is
+abandoned.
+
 filter/
 --------------------------------------------------------------------------------
 Contains scripts to help find and visualize the filter parameters.
