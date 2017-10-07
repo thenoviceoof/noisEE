@@ -37,11 +37,13 @@ There are also scripts generating multimedia:
   red noise.
 
 - `visualized_spectrum.py`: running this will generate figures used in
-  [part 1 of the project notes]().
+  [part 1 of the project
+  notes](http://thenoviceoof.com/blog/projects/noisee-part-1-software/).
 
 - `visualized_animated_spectrum.py`: running this will generate
   animation frames used for the spectrum animation in [part 1 of the
-  project notes]().
+  project
+  notes](http://thenoviceoof.com/blog/projects/noisee-part-1-software/).
 
 hardware/
 --------------------------------------------------------------------------------
