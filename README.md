@@ -9,20 +9,21 @@ If you want a full explanation of the project, see notes [part
 [part
 2](http://thenoviceoof.com/blog/projects/noisee-part-2-hardware/).
 
-**NOTE**: the hardware rendition does not work. This project is
-abandoned.
+**NOTE**: the hardware rendition does not work, and will be expensive
+in time to correct. This project is abandoned.
 
 filter/
 --------------------------------------------------------------------------------
 Contains scripts to help find and visualize the filter parameters.
 
 - `exploration_parameters.py`: exploratory work, lots of commented out
-  code. Generates graphics to investigate whether simple parameter
-  interpolation would work.
+  code. Generates graphics to investigate whether simple linear
+  parameter interpolation would work.
 
-- `ideal_parameters.py`: hill climb the gain parameters of a 3 low
-  pass filter joint filter to create linear slope approximations,
-  using ideal filter transfer functions. Generates `gains.csv`.
+- `ideal_parameters.py`: hill climb the gain parameters of a joint
+  filter made of 3 low pass filters to create linear slope
+  approximations, using ideal filter transfer functions. Generates
+  `gains.csv`.
 
 - `linear_approximation.R`: takes in `gains.csv` (currently a more
   specific name; you'll need to edit the file) and uses R's segmented
@@ -79,5 +80,5 @@ Contains files for programming the AVR.
 (other)
 --------------------------------------------------------------------------------
 
-- test_binary_search_loop.py: a quick script to make sure that a
+- `test_binary_search_loop.py`: a quick script to make sure that a
   binary search on the calculated filter values will terminate.
